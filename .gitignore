@@ -1,0 +1,22 @@
+*.iml
+.gradle/
+.kotlin/
+.idea/
+.DS_Store
+/build/
+/app/build/
+/captures/
+.externalNativeBuild
+.cxx
+local.properties
+
+# Signing materials and secrets — never commit
+/signing/
+**/*.jks
+**/*.keystore
+**/*.pass
+**/keystore.properties
+*.apk
+*.aab
+/dist/
+*.log
