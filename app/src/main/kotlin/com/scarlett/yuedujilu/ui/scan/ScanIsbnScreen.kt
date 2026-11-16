@@ -43,12 +43,18 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.scarlett.yuedujilu.AppViewModel
+import com.scarlett.yuedujilu.Route
+import com.scarlett.yuedujilu.domain.Isbn
+import com.scarlett.yuedujilu.domain.IsbnParse
 import com.scarlett.yuedujilu.ui.common.NoticeCard
 import com.scarlett.yuedujilu.ui.common.PrimaryButton
+import com.scarlett.yuedujilu.ui.common.QuietButton
 import com.scarlett.yuedujilu.ui.common.ScreenHeader
 import com.scarlett.yuedujilu.ui.theme.LocalPalette
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.delay
 
 @Composable
 fun ScanIsbnScreen(vm: AppViewModel) {
@@ -58,12 +64,19 @@ fun ScanIsbnScreen(vm: AppViewModel) {
     mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
   }
   var asked by remember { mutableStateOf(false) }
+  var hint by remember { mutableStateOf<String?>(null) }
+  var offerManual by remember { mutableStateOf(false) }
   val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
     granted = it
     asked = true
   }
   LaunchedEffect(Unit) {
     if (!granted) launcher.launch(Manifest.permission.CAMERA)
+  }
+  LaunchedEffect(granted) {
+    if (!granted) return@LaunchedEffect
+    delay(15_000)
+    offerManual = true
   }
   Column(
     Modifier
@@ -76,24 +89,40 @@ fun ScanIsbnScreen(vm: AppViewModel) {
     when {
       granted -> {
         Box(Modifier.weight(1f).fillMaxWidth()) {
-          CameraIsbnPreview(onIsbn = { code -> vm.lookupIsbn(code) })
+          CameraIsbnPreview(
+            onIsbn = { code -> vm.lookupIsbn(code) },
+            onHint = { hint = it },
+          )
         }
-        Text(
-          "将条码置于画面中。识别使用应用内的 ML Kit，不需要再装其他扫码应用。真机相机在本构建环境中未实测。",
-          color = p.textSecondary,
-          fontSize = 12.sp,
-          modifier = Modifier.padding(20.dp),
-          lineHeight = 18.sp,
-        )
+        Column(Modifier.padding(20.dp)) {
+          Text(
+            "对准书背或封底上的 ISBN 条码。也可以扫描写有 ISBN 的二维码；普通链接或商品条码不会打开，只会给出提示。",
+            color = p.textSecondary,
+            fontSize = 13.sp,
+            lineHeight = 20.sp,
+          )
+          hint?.let {
+            Spacer(Modifier.height(10.dp))
+            NoticeCard(it)
+          }
+          if (offerManual) {
+            Spacer(Modifier.height(14.dp))
+            Text("还没有识别到 ISBN，可以改用手填。", color = p.textSecondary, fontSize = 13.sp)
+            Spacer(Modifier.height(8.dp))
+            QuietButton("改为手输 ISBN", onClick = { vm.go(Route.IsbnEntry) }, modifier = Modifier.fillMaxWidth())
+          }
+        }
       }
       else -> {
         Column(Modifier.padding(20.dp)) {
-          NoticeCard("扫描 ISBN 需要相机权限，仅在你点扫描时申请，用于识别封底条码。未授权时仍可手输 ISBN 或手动填书。")
+          NoticeCard("扫描书背或封底上的 ISBN 条码需要相机权限，仅在你点扫描时申请。未授权时仍可手输 ISBN 或手动填书。")
           Spacer(Modifier.height(16.dp))
           PrimaryButton("授予相机权限", onClick = { launcher.launch(Manifest.permission.CAMERA) }, modifier = Modifier.fillMaxWidth())
           if (asked && !granted) {
             Spacer(Modifier.height(12.dp))
             Text("权限被拒绝。你可以到系统设置中开启，或改用手输 ISBN。", color = p.textSecondary, fontSize = 13.sp, lineHeight = 20.sp)
+            Spacer(Modifier.height(12.dp))
+            QuietButton("改为手输 ISBN", onClick = { vm.go(Route.IsbnEntry) }, modifier = Modifier.fillMaxWidth())
           }
         }
       }
@@ -102,14 +131,15 @@ fun ScanIsbnScreen(vm: AppViewModel) {
 }
 
 @Composable
-private fun CameraIsbnPreview(onIsbn: (String) -> Unit) {
+private fun CameraIsbnPreview(
+  onIsbn: (String) -> Unit,
+  onHint: (String) -> Unit,
+) {
   val lifecycleOwner = LocalLifecycleOwner.current
   val context = LocalContext.current
+  var previewView by remember { mutableStateOf<PreviewView?>(null) }
   val taken = remember { AtomicBoolean(false) }
-  val executor = remember { Executors.newSingleThreadExecutor() }
-  DisposableEffect(Unit) {
-    onDispose { executor.shutdown() }
-  }
+
   AndroidView(
     modifier = Modifier.fillMaxSize(),
     factory = { ctx ->
@@ -118,47 +148,93 @@ private fun CameraIsbnPreview(onIsbn: (String) -> Unit) {
         scaleType = PreviewView.ScaleType.FILL_CENTER
       }
     },
-    update = { previewView ->
-      val providerFuture = ProcessCameraProvider.getInstance(context)
-      providerFuture.addListener({
-        val provider = providerFuture.get()
-        val preview = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
-        val options = BarcodeScannerOptions.Builder()
-          .setBarcodeFormats(
-            Barcode.FORMAT_EAN_13,
-            Barcode.FORMAT_EAN_8,
-            Barcode.FORMAT_UPC_A,
-            Barcode.FORMAT_UPC_E,
-            Barcode.FORMAT_CODE_128,
-          )
-          .build()
-        val scanner = BarcodeScanning.getClient(options)
-        val analysis = ImageAnalysis.Builder()
-          .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-          .setResolutionSelector(
-            ResolutionSelector.Builder()
-              .setResolutionStrategy(ResolutionStrategy(Size(1280, 720), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
-              .build()
-          )
-          .build()
-        analysis.setAnalyzer(
-          executor,
-          MlKitAnalyzer(listOf(scanner), androidx.camera.view.CameraController.COORDINATE_SYSTEM_VIEW_REFERENCED, executor) { result ->
-            val codes = result.getValue(scanner) ?: return@MlKitAnalyzer
-            val raw = codes.firstOrNull()?.rawValue ?: return@MlKitAnalyzer
-            val cleaned = raw.filter { it.isDigit() || it.equals('X', true) }
-            if (cleaned.length in 8..13 && taken.compareAndSet(false, true)) {
-              previewView.post { onIsbn(cleaned) }
-            }
-          },
-        )
-        try {
-          provider.unbindAll()
-          provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
-        } catch (_: Exception) {
-          // 无相机或绑定失败时保持画面空白，文案已提示未实测。
-        }
-      }, ContextCompat.getMainExecutor(context))
+    update = { view ->
+      if (previewView !== view) previewView = view
     },
   )
+
+  DisposableEffect(lifecycleOwner, previewView) {
+    val view = previewView
+    if (view == null) {
+      return@DisposableEffect onDispose { }
+    }
+    val executor = Executors.newSingleThreadExecutor()
+    val options = BarcodeScannerOptions.Builder()
+      .setBarcodeFormats(
+        Barcode.FORMAT_EAN_13,
+        Barcode.FORMAT_EAN_8,
+        Barcode.FORMAT_UPC_A,
+        Barcode.FORMAT_UPC_E,
+        Barcode.FORMAT_CODE_128,
+        Barcode.FORMAT_QR_CODE,
+      )
+      .build()
+    val scanner = BarcodeScanning.getClient(options)
+    val disposed = AtomicBoolean(false)
+    val lastHint = AtomicReference<String?>(null)
+    val mainExec = ContextCompat.getMainExecutor(context)
+    var provider: ProcessCameraProvider? = null
+    val analysis = ImageAnalysis.Builder()
+      .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+      .setResolutionSelector(
+        ResolutionSelector.Builder()
+          .setResolutionStrategy(ResolutionStrategy(Size(1280, 720), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
+          .build()
+      )
+      .build()
+    // 手绑 Preview + ImageAnalysis 时必须用 ORIGINAL。VIEW_REFERENCED 依赖
+    // CameraController.updateTransform，在 CameraX 1.5.2 下手绑会导致每帧直接 close。
+    // 本页不绘制条码框，不需要视图坐标。
+    analysis.setAnalyzer(
+      executor,
+      MlKitAnalyzer(listOf(scanner), ImageAnalysis.COORDINATE_SYSTEM_ORIGINAL, executor) { result ->
+        if (disposed.get() || taken.get()) return@MlKitAnalyzer
+        val err = result.getThrowable(scanner)
+        if (err != null) {
+          val msg = "识别暂时失败：${err.message ?: err.javaClass.simpleName}"
+          if (lastHint.getAndSet(msg) != msg) {
+            view.post { if (!disposed.get()) onHint(msg) }
+          }
+          return@MlKitAnalyzer
+        }
+        val codes = result.getValue(scanner).orEmpty()
+        val raw = codes.firstOrNull()?.rawValue ?: return@MlKitAnalyzer
+        when (val parsed = Isbn.extractIsbn(raw)) {
+          is IsbnParse.Valid -> {
+            if (taken.compareAndSet(false, true)) {
+              view.post { if (!disposed.get()) onIsbn(parsed.isbn) }
+            }
+          }
+          is IsbnParse.Rejected -> {
+            if (lastHint.getAndSet(parsed.reason) != parsed.reason) {
+              view.post { if (!disposed.get()) onHint(parsed.reason) }
+            }
+          }
+        }
+      },
+    )
+    val preview = Preview.Builder().build().also { it.surfaceProvider = view.surfaceProvider }
+    val future = ProcessCameraProvider.getInstance(context)
+    future.addListener({
+      if (disposed.get()) return@addListener
+      try {
+        val p = future.get()
+        if (disposed.get()) return@addListener
+        provider = p
+        p.unbindAll()
+        p.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+      } catch (e: Exception) {
+        val msg = "无法打开相机：${e.message ?: e.javaClass.simpleName}。请改用手输 ISBN。"
+        view.post { if (!disposed.get()) onHint(msg) }
+      }
+    }, mainExec)
+
+    onDispose {
+      disposed.set(true)
+      runCatching { provider?.unbindAll() }
+      runCatching { analysis.clearAnalyzer() }
+      runCatching { scanner.close() }
+      executor.shutdown()
+    }
+  }
 }

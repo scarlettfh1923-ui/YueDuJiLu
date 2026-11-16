@@ -51,6 +51,7 @@ fun YueDuTheme(
     LocalRadii provides catalog.radii,
     LocalSpaces provides catalog.spaces,
     LocalMotion provides motion,
+    LocalGlassTreatment provides remember(context) { resolveGlassTreatment(context) },
   ) {
     MaterialTheme(colorScheme = scheme, typography = YueDuTypography, content = content)
   }

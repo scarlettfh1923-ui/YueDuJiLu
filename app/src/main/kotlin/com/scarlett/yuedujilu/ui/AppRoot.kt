@@ -32,9 +32,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,8 +70,12 @@ import com.scarlett.yuedujilu.ui.stats.StatsScreen
 import com.scarlett.yuedujilu.ui.theme.LocalMotion
 import com.scarlett.yuedujilu.ui.theme.LocalPalette
 import com.scarlett.yuedujilu.ui.theme.LocalRadii
+import com.scarlett.yuedujilu.ui.theme.GlassTreatment
+import com.scarlett.yuedujilu.ui.theme.LocalGlassTreatment
+import com.scarlett.yuedujilu.ui.theme.LocalHazeState
 import com.scarlett.yuedujilu.ui.theme.glassSurface
-import com.scarlett.yuedujilu.ui.theme.shouldUseSolidGlass
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import com.scarlett.yuedujilu.ui.theme.pressClickable
 
 @Composable
@@ -120,11 +124,20 @@ fun AppRoot(vm: AppViewModel, state: AppUiState) {
 private fun MainTabs(vm: AppViewModel, state: AppUiState) {
   val active = vm.active()
   val activeBook = active?.let { s -> state.snapshot.books.find { it.id == s.bookId } }
+  val treatment = LocalGlassTreatment.current
+  val hazeState = rememberHazeState()
+  CompositionLocalProvider(LocalHazeState provides hazeState) {
   Box(Modifier.fillMaxSize()) {
-    when (state.tab) {
-      MainTab.SHELF -> ShelfScreen(vm, state)
-      MainTab.STATS -> StatsScreen(vm, state)
-      MainTab.MINE -> MineScreen(vm, state)
+    Box(
+      Modifier
+        .fillMaxSize()
+        .then(if (treatment == GlassTreatment.BLUR) Modifier.hazeSource(state = hazeState) else Modifier)
+    ) {
+      when (state.tab) {
+        MainTab.SHELF -> ShelfScreen(vm, state)
+        MainTab.STATS -> StatsScreen(vm, state)
+        MainTab.MINE -> MineScreen(vm, state)
+      }
     }
     Column(
       Modifier
@@ -155,6 +168,7 @@ private fun MainTabs(vm: AppViewModel, state: AppUiState) {
       }
       TabIsland(selected = state.tab, onSelect = vm::setTab)
     }
+  }
   }
 }
 
@@ -207,11 +221,10 @@ private fun TabIsland(selected: MainTab, onSelect: (MainTab) -> Unit) {
   val p = LocalPalette.current
   val radii = LocalRadii.current
   val shape = RoundedCornerShape(radii.container.dp)
-  val solid = shouldUseSolidGlass(LocalContext.current)
   Row(
     Modifier
       .fillMaxWidth()
-      .glassSurface(shape, solid = solid)
+      .glassSurface(shape)
       .padding(TabBarSpec.INNER_PADDING_DP.dp)
       .height(56.dp),
     verticalAlignment = Alignment.CenterVertically,

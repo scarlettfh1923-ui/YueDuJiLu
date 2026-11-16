@@ -21,6 +21,7 @@ import com.scarlett.yuedujilu.domain.BookSource
 import com.scarlett.yuedujilu.domain.BookStatus
 import com.scarlett.yuedujilu.domain.ReadingMath
 import com.scarlett.yuedujilu.domain.ReadingSession
+import com.scarlett.yuedujilu.domain.StatsOverview
 import com.scarlett.yuedujilu.domain.StatsPeriod
 import com.scarlett.yuedujilu.domain.ThemeId
 import com.scarlett.yuedujilu.domain.Zones
@@ -72,6 +73,8 @@ data class AppUiState(
   val statsPeriod: StatsPeriod = StatsPeriod.MONTH,
   val statsMode: StatsMode = StatsMode.OVERVIEW,
   val calendarMonth: YearMonth = YearMonth.from(LocalDate.now(Zones.Shanghai)),
+  val statsSource: SourceFilter = SourceFilter.ALL,
+  val statsAnchor: LocalDate = LocalDate.now(Zones.Shanghai),
   val route: Route = Route.Main,
   val message: UiMessage? = null,
   val showPlus: Boolean = false,
@@ -101,6 +104,8 @@ class AppViewModel(
   private val _period = MutableStateFlow(StatsPeriod.MONTH)
   private val _statsMode = MutableStateFlow(StatsMode.OVERVIEW)
   private val _calMonth = MutableStateFlow(YearMonth.from(LocalDate.now(Zones.Shanghai)))
+  private val _statsSource = MutableStateFlow(SourceFilter.ALL)
+  private val _statsAnchor = MutableStateFlow(LocalDate.now(Zones.Shanghai))
   private val _route = MutableStateFlow<Route>(Route.Main)
   private val _message = MutableStateFlow<UiMessage?>(null)
   private val _showPlus = MutableStateFlow(false)
@@ -122,7 +127,8 @@ class AppViewModel(
     combine(_hasShow, _hasDeep, _hasWeread, combine(_lookupBusy, _testBusy, _wereadBusy, _wereadProgress) { w, x, y, z -> Quad(w, x, y, z) }) { a, b, c, d ->
       FlagPack(a, b, c, d.a, d.b, d.c, d.d)
     },
-  ) { a, b, c, d ->
+    combine(_statsSource, _statsAnchor) { s, a -> s to a },
+  ) { a, b, c, d, e ->
     AppUiState(
       snapshot = a.a,
       now = a.b,
@@ -133,6 +139,8 @@ class AppViewModel(
       statsPeriod = b.c,
       statsMode = b.d,
       calendarMonth = c.a,
+      statsSource = e.first,
+      statsAnchor = e.second,
       route = c.b,
       message = c.c,
       showPlus = c.d,
@@ -163,7 +171,28 @@ class AppViewModel(
   fun setSource(f: SourceFilter) { _source.value = f }
   fun setPeriod(p: StatsPeriod) { _period.value = p }
   fun setStatsMode(m: StatsMode) { _statsMode.value = m }
-  fun shiftMonth(delta: Long) { _calMonth.value = _calMonth.value.plusMonths(delta) }
+  fun setStatsSource(f: SourceFilter) { _statsSource.value = f }
+  fun setStatsAnchor(date: LocalDate) {
+    _statsAnchor.value = date
+    _calMonth.value = YearMonth.from(date)
+  }
+  fun shiftStatsAnchor(delta: Long) {
+    val today = LocalDate.now(Zones.Shanghai)
+    val period = _period.value
+    if (period == StatsPeriod.ALL) return
+    if (delta > 0 && !StatsOverview.canShiftForward(period, _statsAnchor.value, today)) return
+    val next = StatsOverview.shiftAnchor(period, _statsAnchor.value, delta)
+    _statsAnchor.value = next
+    _calMonth.value = YearMonth.from(next)
+  }
+  fun shiftMonth(delta: Long) {
+    val today = LocalDate.now(Zones.Shanghai)
+    val next = _calMonth.value.plusMonths(delta)
+    if (delta > 0 && next.isAfter(YearMonth.from(today))) return
+    _calMonth.value = next
+    val day = _statsAnchor.value.dayOfMonth.coerceAtMost(next.lengthOfMonth())
+    _statsAnchor.value = next.atDay(day)
+  }
   fun openPlus(open: Boolean) { _showPlus.value = open }
   fun clearMessage() { _message.value = null }
   fun toast(text: String, error: Boolean = false) { _message.value = UiMessage(text, error) }
