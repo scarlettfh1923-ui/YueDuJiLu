@@ -11,6 +11,11 @@ import com.scarlett.yuedujilu.data.LibraryRepository
 import com.scarlett.yuedujilu.data.SecretStore
 import com.scarlett.yuedujilu.data.ShowApiClient
 import com.scarlett.yuedujilu.data.ShowApiResult
+import com.scarlett.yuedujilu.data.WereadApiResult
+import com.scarlett.yuedujilu.data.WereadClient
+import com.scarlett.yuedujilu.data.todayInShanghai
+import com.scarlett.yuedujilu.domain.WereadImport
+import com.scarlett.yuedujilu.domain.WereadPartStatus
 import com.scarlett.yuedujilu.domain.Book
 import com.scarlett.yuedujilu.domain.BookSource
 import com.scarlett.yuedujilu.domain.BookStatus
@@ -19,6 +24,7 @@ import com.scarlett.yuedujilu.domain.ReadingSession
 import com.scarlett.yuedujilu.domain.StatsPeriod
 import com.scarlett.yuedujilu.domain.ThemeId
 import com.scarlett.yuedujilu.domain.Zones
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -71,8 +77,11 @@ data class AppUiState(
   val showPlus: Boolean = false,
   val hasShowApiKey: Boolean = false,
   val hasDeepSeekKey: Boolean = false,
+  val hasWereadKey: Boolean = false,
   val lookupBusy: Boolean = false,
   val testBusy: Boolean = false,
+  val wereadBusy: Boolean = false,
+  val wereadProgress: String? = null,
 )
 
 enum class StatsMode { OVERVIEW, CALENDAR }
@@ -82,6 +91,7 @@ class AppViewModel(
   val library: LibraryRepository,
   val secrets: SecretStore,
   val showApi: ShowApiClient,
+  val weread: WereadClient,
 ) : AndroidViewModel(application) {
 
   private val _tab = MutableStateFlow(MainTab.SHELF)
@@ -97,15 +107,21 @@ class AppViewModel(
   private val _now = MutableStateFlow(System.currentTimeMillis())
   private val _hasShow = MutableStateFlow(secrets.getShowApiKey() != null)
   private val _hasDeep = MutableStateFlow(secrets.getDeepSeekKey() != null)
+  private val _hasWeread = MutableStateFlow(secrets.getWereadKey() != null)
   private val _lookupBusy = MutableStateFlow(false)
   private val _testBusy = MutableStateFlow(false)
+  private val _wereadBusy = MutableStateFlow(false)
+  private val _wereadProgress = MutableStateFlow<String?>(null)
+  private var wereadJob: Job? = null
   private val backStack = ArrayDeque<Route>()
 
   val ui: StateFlow<AppUiState> = combine(
     combine(library.state, _now, _tab, _query) { snap, now, tab, q -> Quad(snap, now, tab, q) },
     combine(_status, _source, _period, _statsMode) { a, b, c, d -> Quad(a, b, c, d) },
     combine(_calMonth, _route, _message, _showPlus) { a, b, c, d -> Quad(a, b, c, d) },
-    combine(_hasShow, _hasDeep, _lookupBusy, _testBusy) { a, b, c, d -> Quad(a, b, c, d) },
+    combine(_hasShow, _hasDeep, _hasWeread, combine(_lookupBusy, _testBusy, _wereadBusy, _wereadProgress) { w, x, y, z -> Quad(w, x, y, z) }) { a, b, c, d ->
+      FlagPack(a, b, c, d.a, d.b, d.c, d.d)
+    },
   ) { a, b, c, d ->
     AppUiState(
       snapshot = a.a,
@@ -120,10 +136,13 @@ class AppViewModel(
       route = c.b,
       message = c.c,
       showPlus = c.d,
-      hasShowApiKey = d.a,
-      hasDeepSeekKey = d.b,
-      lookupBusy = d.c,
-      testBusy = d.d,
+      hasShowApiKey = d.hasShow,
+      hasDeepSeekKey = d.hasDeep,
+      hasWereadKey = d.hasWeread,
+      lookupBusy = d.lookupBusy,
+      testBusy = d.testBusy,
+      wereadBusy = d.wereadBusy,
+      wereadProgress = d.wereadProgress,
     )
   }.stateIn(viewModelScope, SharingStarted.Eagerly, AppUiState())
 
@@ -389,6 +408,153 @@ class AppViewModel(
     }
   }
 
+
+  fun wereadAccountHash(): String? =
+    secrets.getWereadKey()?.let { com.scarlett.yuedujilu.data.WereadGateway.accountPartition(it) }
+
+  fun saveWereadConfig(key: String, importStartDate: String?) {
+    if (key.isNotBlank()) secrets.setWereadKey(key.trim())
+    _hasWeread.value = secrets.getWereadKey() != null
+    val start = WereadImport.parseDate(importStartDate)
+    viewModelScope.launch {
+      library.updateSettings {
+        it.copy(
+          wereadImportStartDate = start?.let(WereadImport::format),
+          wereadConfigured = secrets.getWereadKey() != null && start != null,
+        )
+      }
+      toast(
+        when {
+          secrets.getWereadKey() == null -> "请填写密钥后再保存"
+          start == null -> "请设置导入起点"
+          else -> "已保存密钥和导入起点（起点不会自动滚动）"
+        },
+        error = secrets.getWereadKey() == null || start == null,
+      )
+    }
+  }
+
+  fun applyWereadLast7Days(existingIso: String?): String {
+    val today = todayInShanghai(now())
+    val existing = WereadImport.parseDate(existingIso)
+    val start = WereadImport.applyLast7DaysShortcut(today, existing)
+    if (existing != null) {
+      toast("起点已固定为 ${WereadImport.format(existing)}，不会按最近 7 天滚动。如需调整请直接修改日期。")
+    }
+    return WereadImport.format(start)
+  }
+
+  fun testWereadConnection() {
+    val key = secrets.getWereadKey()
+    if (key.isNullOrBlank()) {
+      toast("请先填写并保存密钥", true)
+      return
+    }
+    if (_wereadBusy.value) return
+    wereadJob?.cancel()
+    wereadJob = viewModelScope.launch {
+      _wereadBusy.value = true
+      _wereadProgress.value = "正在测试连接"
+      when (val r = weread.testConnection(key)) {
+        is WereadApiResult.Ok -> toast("连接成功，接口可用")
+        is WereadApiResult.UpgradeRequired -> toast("需要先升级微信读书技能：${r.message}", true)
+        is WereadApiResult.Error -> toast("测试未通过：${r.message}", true)
+        is WereadApiResult.Failed -> toast("测试未通过：${r.message}", true)
+        WereadApiResult.MissingKey -> toast("请先填写并保存密钥", true)
+      }
+      _wereadBusy.value = false
+      _wereadProgress.value = null
+    }
+  }
+
+  fun cancelWereadSync() {
+    wereadJob?.cancel()
+    wereadJob = null
+    _wereadBusy.value = false
+    _wereadProgress.value = null
+    toast("已取消")
+  }
+
+  fun syncWeread() {
+    val key = secrets.getWereadKey()
+    val start = WereadImport.parseDate(library.state.value.settings.wereadImportStartDate)
+    if (key.isNullOrBlank() || start == null) {
+      toast("请先保存密钥和导入起点", true)
+      return
+    }
+    if (_wereadBusy.value) return
+    wereadJob?.cancel()
+    wereadJob = viewModelScope.launch {
+      _wereadBusy.value = true
+      val today = todayInShanghai(now())
+      val nowMs = now()
+      val snap0 = library.state.value
+      var durationMsg = ""
+      var notesMsg = ""
+      var durationStatus = WereadPartStatus.IDLE
+      var notesStatus = WereadPartStatus.IDLE
+      try {
+        _wereadProgress.value = "正在同步阅读时长"
+        val (durationReport, newDays) = weread.syncDailyDuration(
+          apiKey = key,
+          start = start,
+          today = today,
+          existing = snap0.wereadDays,
+          nowMs = nowMs,
+          onProgress = { _wereadProgress.value = it },
+        )
+        durationStatus = durationReport.durationStatus
+        durationMsg = durationReport.message
+        if (newDays != null && durationStatus != WereadPartStatus.FAILED && durationStatus != WereadPartStatus.UPGRADE) {
+          library.replaceWereadDuration(newDays)
+        }
+        if (durationStatus == WereadPartStatus.UPGRADE) {
+          notesStatus = WereadPartStatus.IDLE
+          notesMsg = "已暂停，未同步笔记"
+        } else {
+          _wereadProgress.value = "正在同步划线与想法"
+          val snap1 = library.state.value
+          val (notesReport, notesWritten) = weread.syncNotes(
+            apiKey = key,
+            start = start,
+            today = today,
+            nowEpochSec = nowMs / 1000,
+            existingDays = snap1.wereadDays,
+            existingNotes = snap1.wereadNotes,
+            nowMs = nowMs,
+            onProgress = { _wereadProgress.value = it },
+          )
+          notesStatus = notesReport.notesStatus
+          notesMsg = notesReport.message
+          if (notesWritten != null && notesStatus == WereadPartStatus.SUCCESS) {
+            library.replaceWereadNotes(notesWritten.first, notesWritten.second)
+          }
+        }
+        val combined = listOf(durationMsg, notesMsg).filter { it.isNotBlank() }.joinToString("。")
+        library.updateSettings {
+          it.copy(
+            wereadLastSyncAt = java.time.Instant.ofEpochMilli(nowMs).toString(),
+            wereadDurationStatus = durationStatus,
+            wereadNotesStatus = notesStatus,
+            wereadLastMessage = combined,
+          )
+        }
+        val failed = durationStatus == WereadPartStatus.FAILED || durationStatus == WereadPartStatus.UPGRADE ||
+          notesStatus == WereadPartStatus.FAILED || notesStatus == WereadPartStatus.UPGRADE
+        val partial = durationStatus == WereadPartStatus.INCOMPLETE || notesStatus == WereadPartStatus.PARTIAL ||
+          (durationStatus == WereadPartStatus.SUCCESS && notesStatus != WereadPartStatus.SUCCESS)
+        toast(combined.ifBlank { "同步结束" }, error = failed || partial)
+      } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        toast("同步失败", true)
+      } finally {
+        _wereadBusy.value = false
+        _wereadProgress.value = null
+      }
+    }
+  }
+
   fun exportTo(uri: Uri) = viewModelScope.launch {
     runCatching {
       val text = library.exportJson()
@@ -412,12 +578,22 @@ class AppViewModel(
 
 private data class Quad<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
 
+private data class FlagPack(
+  val hasShow: Boolean,
+  val hasDeep: Boolean,
+  val hasWeread: Boolean,
+  val lookupBusy: Boolean,
+  val testBusy: Boolean,
+  val wereadBusy: Boolean,
+  val wereadProgress: String?,
+)
+
 class AppViewModelFactory(
   private val app: Application,
   private val container: AppContainer,
 ) : ViewModelProvider.Factory {
   @Suppress("UNCHECKED_CAST")
   override fun <T : ViewModel> create(modelClass: Class<T>): T {
-    return AppViewModel(app, container.library, container.secrets, container.showApi) as T
+    return AppViewModel(app, container.library, container.secrets, container.showApi, container.weread) as T
   }
 }

@@ -1,94 +1,644 @@
 {
-  "version": 1,
-  "radiiDp": {
-    "container": 24,
-    "inner": 16,
-    "chip": 12,
-    "search": 24,
-    "pill": 28
+  "meta": {
+    "product": "阅读记录",
+    "platform": "Android",
+    "defaultTheme": "mist_purple",
+    "themeOrder": [
+      "mist_purple",
+      "pine_teal",
+      "slate_blue",
+      "warm_paper"
+    ],
+    "note": "Design tokens for mapping into the Android app. No API keys, secrets, or user data. Static mock pixels may differ slightly from runtime blur/compositor output."
   },
-  "spacesDp": {
-    "xs": 8,
-    "sm": 12,
-    "md": 20,
-    "lg": 24
-  },
-  "themes": [
-    {
-      "id": "MIST_PLUM",
-      "displayName": "雾紫",
-      "subtitle": "默认 · 雾紫底，深梅强调",
-      "background": "#F3EEF4",
-      "surface": "#FFFBFE",
-      "surfaceMuted": "#E8DFE9",
-      "primary": "#6B2E45",
-      "onPrimary": "#FFF8FB",
-      "primarySoft": "#E9D4DE",
-      "text": "#2A1C22",
-      "textSecondary": "#746069",
-      "textTertiary": "#9A8E95",
-      "stroke": "#1A2A1C22",
-      "danger": "#9B2C3B",
-      "success": "#2E6B52",
-      "shadow": "#1A3A2A40",
-      "isLight": true
+  "themes": {
+    "mist_purple": {
+      "id": "mist_purple",
+      "label": "雾紫",
+      "isDefault": true,
+      "background": "#F1EEF4",
+      "surface": "#FAF8FB",
+      "surfaceRaised": "#FFFFFF",
+      "text": "#1B161F",
+      "secondary": "#58515F",
+      "primary": "#5E314C",
+      "onPrimary": "#FFFFFF",
+      "outline": "#CBC4D0",
+      "primaryContainer": "#ECE6EA",
+      "track": "#E8E2E6",
+      "tabBarComposite": "#FEFEFE",
+      "tabBarAlpha": 0.92
     },
-    {
-      "id": "PINE_GREEN",
-      "displayName": "青绿",
-      "subtitle": "青绿底，松柏强调",
-      "background": "#EEF4F1",
-      "surface": "#F8FBFA",
-      "surfaceMuted": "#DCE8E3",
-      "primary": "#1E5A48",
-      "onPrimary": "#F4FBF8",
-      "primarySoft": "#D0E4DB",
-      "text": "#17241F",
-      "textSecondary": "#5A6B64",
-      "textTertiary": "#8A9892",
-      "stroke": "#1A17241F",
-      "danger": "#9B2C3B",
-      "success": "#1E5A48",
-      "shadow": "#1A1A3A30",
-      "isLight": true
+    "pine_teal": {
+      "id": "pine_teal",
+      "label": "青绿",
+      "isDefault": false,
+      "background": "#EEF3F1",
+      "surface": "#F7FBFA",
+      "surfaceRaised": "#FFFFFF",
+      "text": "#141C1A",
+      "secondary": "#4C5B56",
+      "primary": "#1B5A50",
+      "onPrimary": "#FFFFFF",
+      "outline": "#C3CEC9",
+      "primaryContainer": "#E4EBEA",
+      "track": "#DFE8E6",
+      "tabBarComposite": "#FEFEFE",
+      "tabBarAlpha": 0.92
     },
-    {
-      "id": "SLATE_BLUE",
-      "displayName": "灰蓝",
-      "subtitle": "灰蓝底，青石强调",
+    "slate_blue": {
+      "id": "slate_blue",
+      "label": "灰蓝",
+      "isDefault": false,
       "background": "#EEF1F5",
-      "surface": "#F8FAFC",
-      "surfaceMuted": "#DDE3EB",
-      "primary": "#2C4A66",
-      "onPrimary": "#F5F8FB",
-      "primarySoft": "#D4DEE8",
-      "text": "#1B2430",
-      "textSecondary": "#5B6673",
-      "textTertiary": "#8B95A1",
-      "stroke": "#1A1B2430",
-      "danger": "#9B2C3B",
-      "success": "#2E6B52",
-      "shadow": "#1A1E2A3A",
-      "isLight": true
+      "surface": "#F7F9FC",
+      "surfaceRaised": "#FFFFFF",
+      "text": "#15181E",
+      "secondary": "#515965",
+      "primary": "#3A4E66",
+      "onPrimary": "#FFFFFF",
+      "outline": "#C4CAD3",
+      "primaryContainer": "#E7EAED",
+      "track": "#E3E6EA",
+      "tabBarComposite": "#FEFEFE",
+      "tabBarAlpha": 0.92
     },
-    {
-      "id": "WARM_IVORY",
-      "displayName": "暖白",
-      "subtitle": "暖白底，赭石强调",
-      "background": "#F6F1EA",
-      "surface": "#FFFBF6",
-      "surfaceMuted": "#E9DFD2",
-      "primary": "#6A4A32",
-      "onPrimary": "#FFF8F1",
-      "primarySoft": "#E8D5C4",
-      "text": "#2A221C",
-      "textSecondary": "#74675C",
-      "textTertiary": "#A09082",
-      "stroke": "#1A2A221C",
-      "danger": "#9B2C3B",
-      "success": "#3D6B45",
-      "shadow": "#1A3A2E22",
-      "isLight": true
+    "warm_paper": {
+      "id": "warm_paper",
+      "label": "暖白",
+      "isDefault": false,
+      "background": "#F3EFE6",
+      "surface": "#FAF7F0",
+      "surfaceRaised": "#FFFDF9",
+      "text": "#1A1713",
+      "secondary": "#5F584F",
+      "primary": "#6A3A2E",
+      "onPrimary": "#FFFFFF",
+      "outline": "#D2CABE",
+      "primaryContainer": "#EDE6E1",
+      "track": "#EAE2DD",
+      "tabBarComposite": "#FEFCF7",
+      "tabBarAlpha": 0.92
     }
-  ]
+  },
+  "contrast": {
+    "mist_purple": {
+      "method": "WCAG 2.x relative luminance, (L1+0.05)/(L2+0.05), sRGB linearized with 0.04045 threshold.",
+      "pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.47,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 16.84,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "text",
+          "background": "surfaceRaised",
+          "ratio": 17.78,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "background",
+          "ratio": 6.63,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "surface",
+          "ratio": 7.21,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "surfaceRaised",
+          "ratio": 7.62,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "onPrimary",
+          "background": "primary",
+          "ratio": 10.4,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "text",
+          "background": "tabBarComposite",
+          "ratio": 17.63,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "tabBarComposite",
+          "ratio": 7.55,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "primary",
+          "background": "background",
+          "ratio": 9.05,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "primary",
+          "background": "surface",
+          "ratio": 9.85,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "primary",
+          "background": "surfaceRaised",
+          "ratio": 10.4,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "primary",
+          "background": "tabBarComposite",
+          "ratio": 10.31,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "secondary",
+          "background": "background",
+          "ratio": 6.63,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "unselected icon"
+        },
+        {
+          "foreground": "outline",
+          "background": "background",
+          "ratio": 1.48,
+          "requirement": 3.0,
+          "pass": false,
+          "note": "Decorative hairline only. Do not use outline alone for icons, text, or the only state indicator. Interactive borders should be paired with a 4.5:1 label or use secondary/primary."
+        }
+      ]
+    },
+    "pine_teal": {
+      "method": "WCAG 2.x relative luminance, (L1+0.05)/(L2+0.05), sRGB linearized with 0.04045 threshold.",
+      "pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.47,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 16.63,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "text",
+          "background": "surfaceRaised",
+          "ratio": 17.34,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "background",
+          "ratio": 6.37,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "surface",
+          "ratio": 6.85,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "surfaceRaised",
+          "ratio": 7.15,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "onPrimary",
+          "background": "primary",
+          "ratio": 8.0,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "text",
+          "background": "tabBarComposite",
+          "ratio": 17.2,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "tabBarComposite",
+          "ratio": 7.09,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "primary",
+          "background": "background",
+          "ratio": 7.13,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "primary",
+          "background": "surface",
+          "ratio": 7.67,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "primary",
+          "background": "surfaceRaised",
+          "ratio": 8.0,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "primary",
+          "background": "tabBarComposite",
+          "ratio": 7.93,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "secondary",
+          "background": "background",
+          "ratio": 6.37,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "unselected icon"
+        },
+        {
+          "foreground": "outline",
+          "background": "background",
+          "ratio": 1.44,
+          "requirement": 3.0,
+          "pass": false,
+          "note": "Decorative hairline only. Do not use outline alone for icons, text, or the only state indicator. Interactive borders should be paired with a 4.5:1 label or use secondary/primary."
+        }
+      ]
+    },
+    "slate_blue": {
+      "method": "WCAG 2.x relative luminance, (L1+0.05)/(L2+0.05), sRGB linearized with 0.04045 threshold.",
+      "pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.69,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 16.86,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "text",
+          "background": "surfaceRaised",
+          "ratio": 17.78,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "background",
+          "ratio": 6.25,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "surface",
+          "ratio": 6.71,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "surfaceRaised",
+          "ratio": 7.08,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "onPrimary",
+          "background": "primary",
+          "ratio": 8.53,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "text",
+          "background": "tabBarComposite",
+          "ratio": 17.63,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "tabBarComposite",
+          "ratio": 7.02,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "primary",
+          "background": "background",
+          "ratio": 7.53,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "primary",
+          "background": "surface",
+          "ratio": 8.09,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "primary",
+          "background": "surfaceRaised",
+          "ratio": 8.53,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "primary",
+          "background": "tabBarComposite",
+          "ratio": 8.46,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "secondary",
+          "background": "background",
+          "ratio": 6.25,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "unselected icon"
+        },
+        {
+          "foreground": "outline",
+          "background": "background",
+          "ratio": 1.46,
+          "requirement": 3.0,
+          "pass": false,
+          "note": "Decorative hairline only. Do not use outline alone for icons, text, or the only state indicator. Interactive borders should be paired with a 4.5:1 label or use secondary/primary."
+        }
+      ]
+    },
+    "warm_paper": {
+      "method": "WCAG 2.x relative luminance, (L1+0.05)/(L2+0.05), sRGB linearized with 0.04045 threshold.",
+      "pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.56,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 16.69,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "text",
+          "background": "surfaceRaised",
+          "ratio": 17.58,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "background",
+          "ratio": 6.11,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "surface",
+          "ratio": 6.55,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "surfaceRaised",
+          "ratio": 6.9,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "onPrimary",
+          "background": "primary",
+          "ratio": 9.3,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "text",
+          "background": "tabBarComposite",
+          "ratio": 17.42,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "secondary",
+          "background": "tabBarComposite",
+          "ratio": 6.84,
+          "requirement": 4.5,
+          "pass": true
+        },
+        {
+          "foreground": "primary",
+          "background": "background",
+          "ratio": 8.11,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "primary",
+          "background": "surface",
+          "ratio": 8.69,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "primary",
+          "background": "surfaceRaised",
+          "ratio": 9.16,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "primary",
+          "background": "tabBarComposite",
+          "ratio": 9.07,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "icon or graphical object"
+        },
+        {
+          "foreground": "secondary",
+          "background": "background",
+          "ratio": 6.11,
+          "requirement": 3.0,
+          "pass": true,
+          "use": "unselected icon"
+        },
+        {
+          "foreground": "outline",
+          "background": "background",
+          "ratio": 1.42,
+          "requirement": 3.0,
+          "pass": false,
+          "note": "Decorative hairline only. Do not use outline alone for icons, text, or the only state indicator. Interactive borders should be paired with a 4.5:1 label or use secondary/primary."
+        }
+      ]
+    }
+  },
+  "radiusDp": {
+    "xl": 24,
+    "lg": 16,
+    "md": 12,
+    "sm": 8,
+    "usage": {
+      "xl": "Floating tab bar, search field (pill), add button (circle)",
+      "lg": "Settings groups, timer bar, metric surface, WeChat row, finished-book row",
+      "md": "Primary/secondary buttons, tab selected pill, status chips, small pills",
+      "sm": "Trend bars (capped at half height), tiny cover thumbs"
+    },
+    "nestedRule": "innerRadius = max(8, outerRadius - padding). Example: tab bar 24dp with 8dp inset yields a 12–16dp selected pill. Device frame 36dp with 8dp bezel yields a 28dp screen corner."
+  },
+  "icon": {
+    "viewportDp": 24,
+    "strokeDp": 2,
+    "cap": "round",
+    "join": "round",
+    "fill": "none",
+    "selected": "Keep the same 2dp outline icon. Color shifts to primary and sits on a 12dp-radius primaryContainer pill. Do not swap to a heavier filled glyph.",
+    "unselected": "Same glyph and stroke in the secondary color.",
+    "exceptions": "Android system status icons may use 16–18dp and ~1.6dp stroke; they are system chrome, not app icons."
+  },
+  "typography": {
+    "ui": "Noto Sans CJK SC (or the platform CJK UI font such as Source Han Sans SC / the OEM UI font). Prefer the system font at runtime.",
+    "display": "Noto Serif CJK SC for the statistics duration hero only.",
+    "scaleSp": {
+      "hero": 36,
+      "title": 17,
+      "body": 15,
+      "bodySmall": 13,
+      "label": 12,
+      "tab": 11,
+      "caption": 10
+    },
+    "tracking": "Tighten large display type about -0.03em. Body and labels stay near 0. Do not apply a single letter-spacing to every size.",
+    "leading": "Tighter on the hero, comfortable on body. Scale vertical spacing with fontScale; use sp for type and dp for fixed chrome.",
+    "weight": "Regular for body, Bold for titles and the selected tab/filter. Do not fake a medium weight with a stroke."
+  },
+  "motion": {
+    "press": {
+      "feedbackOn": "pointer down / MotionEvent.ACTION_DOWN",
+      "commitOn": "pointer up inside the target / ACTION_UP",
+      "cancel": "Drag beyond ~10dp slop, or ACTION_CANCEL",
+      "visual": "Immediate ripple plus scale ~0.97. Do not wait for click.",
+      "android": "Compose: Indication ripple + collectIsPressedAsState scale. Views: Material ripple and a down-triggered animator. minimumInteractiveComponentSize / 48dp min touch."
+    },
+    "springDefault": {
+      "dampingRatio": 1.0,
+      "responseSeconds": [
+        0.3,
+        0.4
+      ],
+      "overshoot": false,
+      "androidComposeStiffness": {
+        "response0_3": 438.6,
+        "response0_4": 246.7,
+        "formula": "stiffness = (2π / response)^2 with mass 1, then spring(dampingRatio=1f, stiffness=...)"
+      },
+      "androidViews": "SpringAnimation with SpringForce.DAMPING_RATIO_NO_BOUNCE and a matching stiffness. Do not build a custom physics engine for the first version."
+    },
+    "springMomentum": {
+      "dampingRatio": 0.8,
+      "responseSeconds": [
+        0.3,
+        0.4
+      ],
+      "when": "Only after a flick or throw that already carries velocity. Never add bounce to a menu or fade that just appeared.",
+      "velocityHandoff": "Pass VelocityTracker / Compose velocity to the spring so there is no seam between drag and settle.",
+      "projection": "Project the resting point from release velocity, then snap to the nearest legal target. Android fling/decay may be used for scrolling; if implementing a custom sheet, prefer exponential decay (decelerationRate ≈ 0.998) over v²/(2a)."
+    },
+    "interruptible": "Never lock input during a transition. Start the new animation from the live presentation value (Compose Animatable does this). A closing sheet the user grabs again should follow the finger.",
+    "reducedMotion": {
+      "detect": "Settings.Global.ANIMATOR_DURATION_SCALE, TRANSITION_ANIMATION_SCALE, and WINDOW_ANIMATION_SCALE. If any is 0, or the user asked for reduced motion, replace springs and slides with a 200ms opacity fade.",
+      "keep": "Color and opacity changes that explain a state change. Drop overshoot and parallax."
+    },
+    "reducedTransparency": {
+      "detect": "No single iOS-style system flag is guaranteed on Android. If blur is expensive, contrast fails, or the user enables a high-contrast / reduce-transparency style setting, fall the tab bar back to solid surfaceRaised.",
+      "rule": "Never stack a translucent layer on another translucent layer. The timer bar stays solid even when the tab bar is frosted."
+    }
+  },
+  "touchAndAccessibility": {
+    "minTouchDp": 48,
+    "fontScale": "Type in sp. Retest layouts at fontScale 1.0, 1.3, 1.5, and 2.0. Do not clip Chinese glyphs. Expand vertical rhythm with the text; keep chrome tappable.",
+    "permissions": "Request the camera only when the user chooses Scan ISBN from the add-book action, not at first launch.",
+    "contrastPolicy": "Body and labels ≥ 4.5:1. Icons and graphical objects ≥ 3:1. Values in this file were computed, not estimated."
+  },
+  "productRules": {
+    "completion": "读完 is an explicit user action. A physical book at 475/500 pages may be marked finished without rewriting progress to 500/500. Do not auto-complete when current page equals total pages.",
+    "statsPages": "The global statistics screen does not total pages. Physical page ranges stay on the book and its session history. WeChat Reading does not provide pages.",
+    "wechat": "Until the WeChat Reading skill is actually connected, show 待接入. Do not invent daily minutes or new-note counts.",
+    "isbn": "万维易源 AppKey is entered by the user in 我的 > 图书查询配置. Scan or typed ISBN uses that API; if the lookup fails, allow manual entry.",
+    "ai": "Keep a DeepSeek configuration (including 深度思考 and temperature 0–2, default 0.7; temperature disabled while 深度思考 is on) and an AI entry marked 用途待定. Do not invent AI features in the UI."
+  }
 }

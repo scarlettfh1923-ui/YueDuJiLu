@@ -18,73 +18,94 @@ data class YueDuPalette(
   val danger: Color,
   val success: Color,
   val shadow: Color,
+  val surfaceRaised: Color,
+  val track: Color,
+  val tabBar: Color,
+  val tabBarAlpha: Float = 0.92f,
   val isLight: Boolean = true,
 )
 
 object Palettes {
+  // 内置色与设计交接 theme-tokens.json 默认雾紫等四套对齐，避免解析失败时整份回退到旧色。
   val MistPlum = YueDuPalette(
     id = ThemeId.MIST_PLUM,
-    background = Color(0xFFF3EEF4),
-    surface = Color(0xFFFFFBFE),
-    surfaceMuted = Color(0xFFE8DFE9),
-    primary = Color(0xFF6B2E45),
-    onPrimary = Color(0xFFFFF8FB),
-    primarySoft = Color(0xFFE9D4DE),
-    text = Color(0xFF2A1C22),
-    textSecondary = Color(0xFF746069),
-    textTertiary = Color(0xFF9A8E95),
-    stroke = Color(0x1A2A1C22),
+    background = Color(0xFFF1EEF4),
+    surface = Color(0xFFFAF8FB),
+    surfaceMuted = Color(0xFFE8E2E6),
+    primary = Color(0xFF5E314C),
+    onPrimary = Color(0xFFFFFFFF),
+    primarySoft = Color(0xFFECE6EA),
+    text = Color(0xFF1B161F),
+    textSecondary = Color(0xFF58515F),
+    textTertiary = Color(0xFF58515F),
+    stroke = Color(0xFFCBC4D0),
     danger = Color(0xFF9B2C3B),
     success = Color(0xFF2E6B52),
-    shadow = Color(0x1A3A2A40),
+    shadow = Color(0x14000000),
+    surfaceRaised = Color(0xFFFFFFFF),
+    track = Color(0xFFE8E2E6),
+    tabBar = Color(0xFFFEFEFE),
+    tabBarAlpha = 0.92f,
   )
   val PineGreen = YueDuPalette(
     id = ThemeId.PINE_GREEN,
-    background = Color(0xFFEEF4F1),
-    surface = Color(0xFFF8FBFA),
-    surfaceMuted = Color(0xFFDCE8E3),
-    primary = Color(0xFF1E5A48),
-    onPrimary = Color(0xFFF4FBF8),
-    primarySoft = Color(0xFFD0E4DB),
-    text = Color(0xFF17241F),
-    textSecondary = Color(0xFF5A6B64),
-    textTertiary = Color(0xFF8A9892),
-    stroke = Color(0x1A17241F),
+    background = Color(0xFFEEF3F1),
+    surface = Color(0xFFF7FBFA),
+    surfaceMuted = Color(0xFFDFE8E6),
+    primary = Color(0xFF1B5A50),
+    onPrimary = Color(0xFFFFFFFF),
+    primarySoft = Color(0xFFE4EBEA),
+    text = Color(0xFF141C1A),
+    textSecondary = Color(0xFF4C5B56),
+    textTertiary = Color(0xFF4C5B56),
+    stroke = Color(0xFFC3CEC9),
     danger = Color(0xFF9B2C3B),
-    success = Color(0xFF1E5A48),
-    shadow = Color(0x1A1A3A30),
+    success = Color(0xFF1B5A50),
+    shadow = Color(0x14000000),
+    surfaceRaised = Color(0xFFFFFFFF),
+    track = Color(0xFFDFE8E6),
+    tabBar = Color(0xFFFEFEFE),
+    tabBarAlpha = 0.92f,
   )
   val SlateBlue = YueDuPalette(
     id = ThemeId.SLATE_BLUE,
     background = Color(0xFFEEF1F5),
-    surface = Color(0xFFF8FAFC),
-    surfaceMuted = Color(0xFFDDE3EB),
-    primary = Color(0xFF2C4A66),
-    onPrimary = Color(0xFFF5F8FB),
-    primarySoft = Color(0xFFD4DEE8),
-    text = Color(0xFF1B2430),
-    textSecondary = Color(0xFF5B6673),
-    textTertiary = Color(0xFF8B95A1),
-    stroke = Color(0x1A1B2430),
+    surface = Color(0xFFF7F9FC),
+    surfaceMuted = Color(0xFFE3E6EA),
+    primary = Color(0xFF3A4E66),
+    onPrimary = Color(0xFFFFFFFF),
+    primarySoft = Color(0xFFE7EAED),
+    text = Color(0xFF15181E),
+    textSecondary = Color(0xFF515965),
+    textTertiary = Color(0xFF515965),
+    stroke = Color(0xFFC4CAD3),
     danger = Color(0xFF9B2C3B),
     success = Color(0xFF2E6B52),
-    shadow = Color(0x1A1E2A3A),
+    shadow = Color(0x14000000),
+    surfaceRaised = Color(0xFFFFFFFF),
+    track = Color(0xFFE3E6EA),
+    tabBar = Color(0xFFFEFEFE),
+    tabBarAlpha = 0.92f,
   )
   val WarmIvory = YueDuPalette(
     id = ThemeId.WARM_IVORY,
-    background = Color(0xFFF6F1EA),
-    surface = Color(0xFFFFFBF6),
-    surfaceMuted = Color(0xFFE9DFD2),
-    primary = Color(0xFF6A4A32),
-    onPrimary = Color(0xFFFFF8F1),
-    primarySoft = Color(0xFFE8D5C4),
-    text = Color(0xFF2A221C),
-    textSecondary = Color(0xFF74675C),
-    textTertiary = Color(0xFFA09082),
-    stroke = Color(0x1A2A221C),
+    background = Color(0xFFF3EFE6),
+    surface = Color(0xFFFAF7F0),
+    surfaceMuted = Color(0xFFEAE2DD),
+    primary = Color(0xFF6A3A2E),
+    onPrimary = Color(0xFFFFFFFF),
+    primarySoft = Color(0xFFEDE6E1),
+    text = Color(0xFF1A1713),
+    textSecondary = Color(0xFF5F584F),
+    textTertiary = Color(0xFF5F584F),
+    stroke = Color(0xFFD2CABE),
     danger = Color(0xFF9B2C3B),
     success = Color(0xFF3D6B45),
-    shadow = Color(0x1A3A2E22),
+    shadow = Color(0x14000000),
+    surfaceRaised = Color(0xFFFFFDF9),
+    track = Color(0xFFEAE2DD),
+    tabBar = Color(0xFFFEFCF7),
+    tabBarAlpha = 0.92f,
   )
 
   fun of(id: ThemeId): YueDuPalette = builtins.getValue(id)
@@ -97,10 +118,10 @@ object Palettes {
   )
 
   val defaultSubtitles: Map<ThemeId, String> = mapOf(
-    ThemeId.MIST_PLUM to "默认 · 雾紫底，深梅强调",
-    ThemeId.PINE_GREEN to "青绿底，松柏强调",
-    ThemeId.SLATE_BLUE to "灰蓝底，青石强调",
-    ThemeId.WARM_IVORY to "暖白底，赭石强调",
+    ThemeId.MIST_PLUM to "默认 · 雾紫",
+    ThemeId.PINE_GREEN to "青绿",
+    ThemeId.SLATE_BLUE to "灰蓝",
+    ThemeId.WARM_IVORY to "暖白",
   )
 }
 
@@ -109,7 +130,8 @@ object Radii {
   val inner = 16
   val chip = 12
   val search = 24
-  val pill = 28
+  val pill = 12
+  val sm = 8
 }
 
 object Spaces {

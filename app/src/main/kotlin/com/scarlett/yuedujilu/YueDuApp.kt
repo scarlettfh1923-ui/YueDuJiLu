@@ -7,6 +7,7 @@ import com.scarlett.yuedujilu.data.KeystoreSecretStore
 import com.scarlett.yuedujilu.data.LibraryRepository
 import com.scarlett.yuedujilu.data.SecretStore
 import com.scarlett.yuedujilu.data.ShowApiClient
+import com.scarlett.yuedujilu.data.WereadClient
 import com.scarlett.yuedujilu.ui.theme.ThemeCatalog
 import java.io.File
 
@@ -24,5 +25,6 @@ class AppContainer(context: Context) {
   val library = LibraryRepository(JsonLibraryStore(File(context.filesDir, "library.json")))
   val secrets: SecretStore = KeystoreSecretStore(context)
   val showApi = ShowApiClient()
+  val weread = WereadClient()
   val themeCatalog: ThemeCatalog = ThemeCatalog.load(context)
 }

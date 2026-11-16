@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -49,6 +50,8 @@ import com.scarlett.yuedujilu.ui.common.FilterChip
 import com.scarlett.yuedujilu.ui.common.IconButtonCircle
 import com.scarlett.yuedujilu.ui.common.PrimaryButton
 import com.scarlett.yuedujilu.ui.common.SearchField
+import com.scarlett.yuedujilu.ui.common.StatusTabs
+import com.scarlett.yuedujilu.ui.common.SourceSelector
 import com.scarlett.yuedujilu.ui.common.progressLabel
 import com.scarlett.yuedujilu.ui.common.sourceLabel
 import com.scarlett.yuedujilu.ui.icons.AppIcons
@@ -77,28 +80,34 @@ fun ShelfScreen(vm: AppViewModel, state: AppUiState) {
       Spacer(Modifier.width(10.dp))
       IconButtonCircle(AppIcons.Plus, "添加", onClick = { vm.openPlus(true) })
     }
+    val statuses = listOf(
+      StatusFilter.ALL to "全部",
+      StatusFilter.READING to "在读",
+      StatusFilter.UNREAD to "想读",
+      StatusFilter.FINISHED to "已读",
+      StatusFilter.ABANDONED to "弃读",
+    )
+    val sources = listOf(
+      SourceFilter.ALL to "全部来源",
+      SourceFilter.PHYSICAL to "实体书",
+      SourceFilter.WEREAD to "微信读书",
+    )
     Row(
       Modifier
-        .horizontalScroll(rememberScrollState())
-        .padding(horizontal = 20.dp),
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
+        .fillMaxWidth()
+        .padding(start = 12.dp, end = 16.dp),
+      verticalAlignment = Alignment.CenterVertically,
     ) {
-      FilterChip("全部", state.statusFilter == StatusFilter.ALL) { vm.setStatus(StatusFilter.ALL) }
-      FilterChip("在读", state.statusFilter == StatusFilter.READING) { vm.setStatus(StatusFilter.READING) }
-      FilterChip("想读", state.statusFilter == StatusFilter.UNREAD) { vm.setStatus(StatusFilter.UNREAD) }
-      FilterChip("已读", state.statusFilter == StatusFilter.FINISHED) { vm.setStatus(StatusFilter.FINISHED) }
-      FilterChip("弃读", state.statusFilter == StatusFilter.ABANDONED) { vm.setStatus(StatusFilter.ABANDONED) }
-    }
-    Spacer(Modifier.height(10.dp))
-    Row(
-      Modifier
-        .horizontalScroll(rememberScrollState())
-        .padding(horizontal = 20.dp),
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-      FilterChip("全部来源", state.sourceFilter == SourceFilter.ALL) { vm.setSource(SourceFilter.ALL) }
-      FilterChip("实体书", state.sourceFilter == SourceFilter.PHYSICAL) { vm.setSource(SourceFilter.PHYSICAL) }
-      FilterChip("微信读书", state.sourceFilter == SourceFilter.WEREAD) { vm.setSource(SourceFilter.WEREAD) }
+      StatusTabs(
+        labels = statuses.map { it.second to (state.statusFilter == it.first) },
+        onSelect = { vm.setStatus(statuses[it].first) },
+        modifier = Modifier.weight(1f),
+      )
+      SourceSelector(
+        label = sources.first { it.first == state.sourceFilter }.second,
+        options = sources.map { it.second to (state.sourceFilter == it.first) },
+        onSelect = { vm.setSource(sources[it].first) },
+      )
     }
     if (books.isEmpty()) {
       val emptyTitle: String
@@ -122,12 +131,11 @@ fun ShelfScreen(vm: AppViewModel, state: AppUiState) {
       LazyColumn(
         modifier = Modifier.weight(1f),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = MainBottomSpace.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
       ) {
-        itemsIndexed(books, key = { _, b -> b.id }) { index, book ->
+        itemsIndexed(books, key = { _, b -> b.id }) { _, book ->
           BookRow(
             book = book,
-            featured = index == 0,
             timerRunningOnThis = active?.bookId == book.id,
             onOpen = { vm.go(Route.BookDetail(book.id)) },
             onAction = { vm.startOrOpenTimer(book) },
@@ -190,78 +198,73 @@ private fun PlusItem(icon: androidx.compose.ui.graphics.vector.ImageVector, titl
 @Composable
 fun BookRow(
   book: Book,
-  featured: Boolean,
   timerRunningOnThis: Boolean,
   onOpen: () -> Unit,
   onAction: () -> Unit,
 ) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(if (featured) LocalRadii.current.container.dp else LocalRadii.current.inner.dp)
-  val pad = if (featured) 16.dp else 12.dp
   Row(
     Modifier
       .fillMaxWidth()
-      .shadow(if (featured) 16.dp else 6.dp, shape, ambientColor = p.shadow, spotColor = p.shadow)
-      .clip(shape)
-      .background(p.surface)
       .pressClickable(onClick = onOpen)
-      .padding(pad),
-    verticalAlignment = Alignment.CenterVertically,
+      .padding(vertical = 4.dp),
+    verticalAlignment = Alignment.Top,
   ) {
-    CoverPlate(book, width = if (featured) 64.dp else 52.dp)
+    CoverPlate(book, width = 72.dp)
     Spacer(Modifier.width(14.dp))
     Column(Modifier.weight(1f)) {
-      Text(book.title, color = p.text, fontSize = if (featured) 17.sp else 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+      Text(book.title, color = p.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
       if (book.author.isNotBlank()) {
+        Spacer(Modifier.height(2.dp))
         Text(book.author, color = p.textSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
       }
-      Spacer(Modifier.height(6.dp))
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(book.sourceLabel(), color = p.primary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-        if (book.source != BookSource.WEREAD) {
-          Spacer(Modifier.width(8.dp))
-          Text(book.progressLabel(), color = p.textSecondary, fontSize = 11.sp)
-        }
-      }
+      Spacer(Modifier.height(8.dp))
+      Text(
+        buildString {
+          append(book.sourceLabel())
+          if (book.source != BookSource.WEREAD) {
+            append("  ")
+            append(book.progressLabel())
+          }
+        },
+        color = p.textSecondary,
+        fontSize = 12.sp,
+      )
       if (book.source != BookSource.WEREAD && (book.pageCount ?: 0) > 0) {
         Spacer(Modifier.height(8.dp))
         val progress = (book.currentPage.toFloat() / (book.pageCount ?: 1).coerceAtLeast(1)).coerceIn(0f, 1f)
         Box(
           Modifier
             .fillMaxWidth()
-            .height(6.dp)
+            .height(3.dp)
             .clip(RoundedCornerShape(99.dp))
-            .background(p.surfaceMuted)
+            .background(p.track)
         ) {
           Box(
             Modifier
               .fillMaxWidth(progress)
-              .height(6.dp)
+              .height(3.dp)
               .clip(RoundedCornerShape(99.dp))
               .background(p.primary)
           )
         }
       }
-    }
-    if (book.source != BookSource.WEREAD) {
-      Spacer(Modifier.width(8.dp))
-      val label = when {
-        timerRunningOnThis -> "查看计时"
-        book.currentPage > 0 -> "继续阅读"
-        else -> "开始阅读"
-      }
-      if (featured || timerRunningOnThis) {
-        PrimaryButton(label, onClick = onAction)
-      } else {
+      if (book.source != BookSource.WEREAD) {
+        val label = when {
+          timerRunningOnThis -> "查看计时"
+          book.currentPage > 0 -> "继续阅读"
+          else -> "开始阅读"
+        }
         Text(
           label,
           color = p.primary,
           fontSize = 13.sp,
           fontWeight = FontWeight.Medium,
           modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .padding(top = 4.dp)
+            .defaultMinSize(minHeight = 40.dp)
             .pressClickable(onClick = onAction)
-            .padding(8.dp),
+            .padding(vertical = 8.dp),
         )
       }
     }
@@ -278,6 +281,7 @@ fun CoverPlate(book: Book, width: androidx.compose.ui.unit.Dp) {
   Box(
     Modifier
       .size(width, height)
+      .shadow(6.dp, shape, ambientColor = p.shadow, spotColor = p.shadow)
       .clip(shape)
       .background(Brush.verticalGradient(listOf(color, color.copy(alpha = 0.7f)))),
     contentAlignment = Alignment.Center,

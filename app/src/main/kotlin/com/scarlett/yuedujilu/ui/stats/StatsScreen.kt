@@ -37,6 +37,9 @@ import com.scarlett.yuedujilu.StatsMode
 import com.scarlett.yuedujilu.domain.ReadingMath
 import com.scarlett.yuedujilu.domain.StatsPeriod
 import com.scarlett.yuedujilu.domain.Zones
+import com.scarlett.yuedujilu.domain.WereadImport
+import com.scarlett.yuedujilu.data.todayInShanghai
+import com.scarlett.yuedujilu.ui.common.formatHms
 import com.scarlett.yuedujilu.ui.MainBottomSpace
 import com.scarlett.yuedujilu.ui.common.FilterChip
 import com.scarlett.yuedujilu.ui.common.IconButtonCircle
@@ -78,7 +81,11 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
       ModeToggle(state.statsMode, vm::setStatsMode, Modifier.weight(1f))
       IconButtonCircle(AppIcons.Sync, "同步", onClick = {
-        vm.toast("微信读书尚未接入，没有可同步的数据")
+        if (state.hasWereadKey && state.snapshot.settings.wereadImportStartDate != null) {
+          if (state.wereadBusy) vm.cancelWereadSync() else vm.syncWeread()
+        } else {
+          vm.go(com.scarlett.yuedujilu.Route.Weread)
+        }
       })
     }
     Spacer(Modifier.height(16.dp))
@@ -102,10 +109,10 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
         Text(
           formatDurationZh(stats.durationMs),
           color = p.text,
-          fontSize = 44.sp,
+          fontSize = 36.sp,
           fontFamily = FontFamily.Serif,
           fontWeight = FontWeight.Medium,
-          lineHeight = 52.sp,
+          lineHeight = 40.sp,
         )
         if (state.snapshot.sessions.isEmpty()) {
           Spacer(Modifier.height(8.dp))
@@ -119,11 +126,36 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
         MetricCell("读完本数", "${stats.booksFinished}本", Modifier.weight(1f))
       }
       Spacer(Modifier.height(16.dp))
+      val hash = vm.wereadAccountHash()
+      val range = WereadImport.periodRange(state.statsPeriod, todayInShanghai(state.now))
+      val wereadSec = WereadImport.durationSecInRange(state.snapshot.wereadDays, hash, range)
+      val (highlights, thoughts) = WereadImport.notesInRange(state.snapshot.wereadDays, hash, range)
       SoftCard {
-        Text("微信读书 · 新增笔记", color = p.textSecondary, fontSize = 12.sp)
-        Spacer(Modifier.height(4.dp))
-        Text("暂无数据", color = p.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-        Text("来源尚未接入，不会显示占位数字。", color = p.textTertiary, fontSize = 12.sp)
+        Text("微信读书", color = p.textSecondary, fontSize = 12.sp)
+        Spacer(Modifier.height(6.dp))
+        when {
+          state.wereadBusy -> Text(state.wereadProgress ?: "正在同步…", color = p.text, fontSize = 15.sp)
+          hash == null -> {
+            Text("尚未连接微信读书", color = p.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text("在「我的」里填写密钥并设置起点后即可同步。", color = p.textTertiary, fontSize = 12.sp)
+          }
+          else -> {
+            Text(
+              "阅读时长  " + formatWereadDuration(wereadSec),
+              color = p.text,
+              fontSize = 16.sp,
+              fontWeight = FontWeight.Medium,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text("新增划线 ${highlights} 条，想法 ${thoughts} 条", color = p.text, fontSize = 15.sp)
+            Spacer(Modifier.height(4.dp))
+            Text("本数暂无明细（自定义范围没有完整书目列表，不会用书架存量冒充）。书签无逐条日期，不计入每日新增。", color = p.textTertiary, fontSize = 12.sp, lineHeight = 18.sp)
+            state.snapshot.settings.wereadLastMessage?.let {
+              Spacer(Modifier.height(6.dp))
+              Text(it, color = p.textSecondary, fontSize = 12.sp, lineHeight = 18.sp)
+            }
+          }
+        }
       }
     } else {
       val ym = state.calendarMonth
@@ -232,5 +264,16 @@ private fun MetricCell(label: String, value: String, modifier: Modifier = Modifi
     Text(label, color = p.textSecondary, fontSize = 12.sp)
     Spacer(Modifier.height(6.dp))
     Text(value, color = p.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+  }
+}
+
+private fun formatWereadDuration(seconds: Long): String {
+  if (seconds <= 0) return "0分钟"
+  val hours = seconds / 3600
+  val minutes = (seconds % 3600) / 60
+  return when {
+    hours > 0 && minutes > 0 -> "${hours}小时${minutes}分钟"
+    hours > 0 -> "${hours}小时"
+    else -> "${minutes}分钟"
   }
 }

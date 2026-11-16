@@ -8,6 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,11 +16,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -31,10 +34,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -65,6 +70,8 @@ import com.scarlett.yuedujilu.ui.stats.StatsScreen
 import com.scarlett.yuedujilu.ui.theme.LocalMotion
 import com.scarlett.yuedujilu.ui.theme.LocalPalette
 import com.scarlett.yuedujilu.ui.theme.LocalRadii
+import com.scarlett.yuedujilu.ui.theme.glassSurface
+import com.scarlett.yuedujilu.ui.theme.shouldUseSolidGlass
 import com.scarlett.yuedujilu.ui.theme.pressClickable
 
 @Composable
@@ -92,7 +99,7 @@ fun AppRoot(vm: AppViewModel, state: AppUiState) {
       is Route.EndSession -> EndSessionScreen(vm, state, route.bookId)
       is Route.Backfill -> BackfillScreen(vm, state, route.bookId, route.sessionId)
       Route.Appearance -> AppearanceScreen(vm, state)
-      Route.Weread -> WereadScreen(vm)
+      Route.Weread -> WereadScreen(vm, state)
       Route.ShowApiConfig -> ShowApiConfigScreen(vm, state)
       Route.AiEntry -> AiEntryScreen(vm)
       Route.DeepSeek -> DeepSeekScreen(vm, state)
@@ -130,8 +137,8 @@ private fun MainTabs(vm: AppViewModel, state: AppUiState) {
       val motion = LocalMotion.current
       AnimatedVisibility(
         visible = active != null && activeBook != null,
-        enter = if (motion.weakenMotion) fadeIn(tween(120)) else fadeIn(tween(180)) + expandVertically(),
-        exit = if (motion.weakenMotion) fadeOut(tween(120)) else shrinkVertically() + fadeOut(tween(180)),
+        enter = if (motion.weakenMotion) fadeIn(tween(200)) else fadeIn(tween(180)) + expandVertically(),
+        exit = if (motion.weakenMotion) fadeOut(tween(200)) else shrinkVertically() + fadeOut(tween(180)),
       ) {
         if (active != null && activeBook != null) {
           Column {
@@ -160,13 +167,13 @@ private fun TimerBar(
   onOpen: () -> Unit,
 ) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(LocalRadii.current.container.dp)
+  val shape = RoundedCornerShape(LocalRadii.current.inner.dp)
   Row(
     Modifier
       .fillMaxWidth()
-      .shadow(14.dp, shape, ambientColor = p.shadow, spotColor = p.shadow)
+      .shadow(8.dp, shape, ambientColor = p.shadow, spotColor = p.shadow)
       .clip(shape)
-      .background(p.surface)
+      .background(p.surfaceRaised)
       .pressClickable(onClick = onOpen)
       .padding(horizontal = 16.dp, vertical = 12.dp),
     verticalAlignment = Alignment.CenterVertically,
@@ -179,10 +186,12 @@ private fun TimerBar(
     }
     Box(
       Modifier
-        .clip(RoundedCornerShape(14.dp))
+        .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+        .clip(RoundedCornerShape(LocalRadii.current.chip.dp))
         .background(p.primarySoft)
         .pressClickable(onClick = onToggle)
         .padding(horizontal = 12.dp, vertical = 8.dp),
+      contentAlignment = Alignment.Center,
     ) {
       Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(if (paused) AppIcons.Play else AppIcons.Pause, if (paused) "继续" else "暂停", tint = p.primary, modifier = Modifier.size(16.dp))
@@ -196,41 +205,52 @@ private fun TimerBar(
 @Composable
 private fun TabIsland(selected: MainTab, onSelect: (MainTab) -> Unit) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(28.dp)
+  val radii = LocalRadii.current
+  val shape = RoundedCornerShape(radii.container.dp)
+  val solid = shouldUseSolidGlass(LocalContext.current)
   Row(
     Modifier
-      .shadow(18.dp, shape, ambientColor = p.shadow, spotColor = p.shadow)
-      .clip(shape)
-      .background(p.surface)
-      .padding(6.dp)
-      .fillMaxWidth(),
-    horizontalArrangement = Arrangement.SpaceEvenly,
+      .fillMaxWidth()
+      .glassSurface(shape, solid = solid)
+      .padding(TabBarSpec.INNER_PADDING_DP.dp)
+      .height(56.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    TabItem("书架", if (selected == MainTab.SHELF) AppIcons.ShelfFilled else AppIcons.Shelf, selected == MainTab.SHELF) { onSelect(MainTab.SHELF) }
-    TabItem("统计", if (selected == MainTab.STATS) AppIcons.StatsFilled else AppIcons.Stats, selected == MainTab.STATS) { onSelect(MainTab.STATS) }
-    TabItem("我的", if (selected == MainTab.MINE) AppIcons.MineFilled else AppIcons.Mine, selected == MainTab.MINE) { onSelect(MainTab.MINE) }
+    // 三项等宽等高；图标在上、文字始终在下；选中浅底铺满整格，clip 与 ripple 同一边界。
+    TabItem("书架", AppIcons.Shelf, selected == MainTab.SHELF, Modifier.weight(1f).fillMaxHeight()) { onSelect(MainTab.SHELF) }
+    TabItem("统计", AppIcons.Stats, selected == MainTab.STATS, Modifier.weight(1f).fillMaxHeight()) { onSelect(MainTab.STATS) }
+    TabItem("我的", AppIcons.Mine, selected == MainTab.MINE, Modifier.weight(1f).fillMaxHeight()) { onSelect(MainTab.MINE) }
   }
 }
 
 @Composable
-private fun TabItem(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
+private fun TabItem(
+  label: String,
+  icon: ImageVector,
+  selected: Boolean,
+  modifier: Modifier = Modifier,
+  onClick: () -> Unit,
+) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(22.dp)
-  Row(
-    Modifier
+  val shape = RoundedCornerShape(TabBarSpec.SELECTED_RADIUS_DP.dp)
+  Column(
+    modifier
+      .defaultMinSize(minWidth = TabBarSpec.MIN_TOUCH_DP.dp, minHeight = TabBarSpec.MIN_TOUCH_DP.dp)
       .clip(shape)
-      .background(if (selected) p.primary else androidx.compose.ui.graphics.Color.Transparent)
-      .pressClickable(onClick = onClick)
-      .padding(horizontal = 16.dp, vertical = 10.dp),
-    verticalAlignment = Alignment.CenterVertically,
+      .background(if (selected) p.primarySoft else Color.Transparent)
+      .pressClickable(onClick = onClick),
+    horizontalAlignment = Alignment.CenterHorizontally,
+    verticalArrangement = Arrangement.Center,
   ) {
-    Icon(icon, label, tint = if (selected) p.onPrimary else p.textSecondary, modifier = Modifier.size(20.dp))
-    if (selected) {
-      Spacer(Modifier.width(6.dp))
-      Text(label, color = p.onPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-    }
+    Icon(icon, label, tint = if (selected) p.primary else p.textSecondary, modifier = Modifier.size(24.dp))
+    Text(
+      label,
+      color = if (selected) p.primary else p.textSecondary,
+      fontSize = TabBarSpec.LABEL_SP.sp,
+      fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+      maxLines = 1,
+    )
   }
 }
 
-const val MainBottomSpace = 148
+const val MainBottomSpace = 168

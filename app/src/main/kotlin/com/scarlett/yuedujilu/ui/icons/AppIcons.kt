@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.dp
 
 /**
  * 统一图标系统：24dp 视口、2dp 描边、圆线帽、圆转角、光学留白约 3dp。
- * 底栏三项提供描边/填充两种，选中态用填充，避免混用其他图标库或 emoji。
+ * 底栏三项提供描边/填充两种，底栏选中只变色，始终使用同一描边路径，避免混用其他图标库或 emoji。
  */
 object AppIcons {
   val Shelf = stroke("Shelf") {
@@ -75,6 +75,9 @@ object AppIcons {
   }
   val ChevronLeft = stroke("ChevronLeft") {
     moveTo(14.5f, 6.5f); lineTo(8f, 12f); lineTo(14.5f, 17.5f)
+  }
+  val ChevronDown = stroke("ChevronDown") {
+    moveTo(6.5f, 9.5f); lineTo(12f, 15f); lineTo(17.5f, 9.5f)
   }
   val Pause = stroke("Pause") {
     moveTo(9f, 7f); lineTo(9f, 17f)

@@ -33,7 +33,8 @@ fun readReduceMotion(context: android.content.Context): Boolean {
   fun scale(name: String): Float =
     runCatching { Settings.Global.getFloat(context.contentResolver, name, 1f) }.getOrDefault(1f)
   return scale(Settings.Global.ANIMATOR_DURATION_SCALE) == 0f ||
-    scale(Settings.Global.TRANSITION_ANIMATION_SCALE) == 0f
+    scale(Settings.Global.TRANSITION_ANIMATION_SCALE) == 0f ||
+    scale(Settings.Global.WINDOW_ANIMATION_SCALE) == 0f
 }
 
 @Composable

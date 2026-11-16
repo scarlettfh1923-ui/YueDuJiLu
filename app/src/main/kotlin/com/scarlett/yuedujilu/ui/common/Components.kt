@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,7 +25,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +36,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -51,13 +57,14 @@ fun SoftCard(
   content: @Composable ColumnScope.() -> Unit,
 ) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape((radius ?: LocalRadii.current.container).dp)
-  val shadow = if (elevated) 16.dp else 6.dp
+  val radii = LocalRadii.current
+  val shape = RoundedCornerShape((radius ?: if (elevated) radii.inner else radii.container).dp)
+  val shadow = if (elevated) 8.dp else 6.dp
   Column(
     modifier = modifier
       .shadow(shadow, shape, ambientColor = p.shadow, spotColor = p.shadow)
       .clip(shape)
-      .background(p.surface)
+      .background(if (elevated) p.surfaceRaised else p.surface)
       .then(if (onClick != null) Modifier.pressClickable(onClick = onClick) else Modifier)
       .padding(20.dp),
     content = content,
@@ -73,7 +80,7 @@ fun IconButtonCircle(
   onClick: () -> Unit,
 ) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(18.dp)
+  val shape = RoundedCornerShape(LocalRadii.current.search.dp)
   Box(
     modifier = modifier
       .size(size)
@@ -156,9 +163,10 @@ fun PrimaryButton(
   enabled: Boolean = true,
 ) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(18.dp)
+  val shape = RoundedCornerShape(LocalRadii.current.chip.dp)
   Box(
     modifier = modifier
+      .defaultMinSize(minHeight = 48.dp)
       .clip(shape)
       .background(if (enabled) p.primary else p.surfaceMuted)
       .pressClickable(enabled = enabled, onClick = onClick)
@@ -176,9 +184,10 @@ fun QuietButton(
   modifier: Modifier = Modifier,
 ) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(18.dp)
+  val shape = RoundedCornerShape(LocalRadii.current.chip.dp)
   Box(
     modifier = modifier
+      .defaultMinSize(minHeight = 48.dp)
       .clip(shape)
       .background(p.primarySoft)
       .pressClickable(onClick = onClick)
@@ -243,6 +252,7 @@ fun FormField(
   keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
   keyboardActions: KeyboardActions = KeyboardActions.Default,
   enabled: Boolean = true,
+  secret: Boolean = false,
 ) {
   val p = LocalPalette.current
   Column(modifier) {
@@ -258,6 +268,7 @@ fun FormField(
       cursorBrush = SolidColor(p.primary),
       keyboardOptions = keyboardOptions,
       keyboardActions = keyboardActions,
+      visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
       modifier = Modifier
         .fillMaxWidth()
         .clip(shape)
@@ -296,5 +307,79 @@ fun NoticeCard(text: String, modifier: Modifier = Modifier) {
     Icon(AppIcons.Info, null, tint = p.primary, modifier = Modifier.size(18.dp))
     Spacer(Modifier.width(10.dp))
     Text(text, color = p.text, fontSize = 13.sp, lineHeight = 20.sp)
+  }
+}
+
+
+@Composable
+fun StatusTabs(
+  labels: List<Pair<String, Boolean>>,
+  onSelect: (Int) -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  val p = LocalPalette.current
+  Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+    labels.forEachIndexed { index, (label, selected) ->
+      Column(
+        Modifier
+          .weight(1f)
+          .defaultMinSize(minHeight = 48.dp)
+          .pressClickable { onSelect(index) }
+          .padding(horizontal = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+      ) {
+        Text(
+          label,
+          color = if (selected) p.primary else p.textSecondary,
+          fontSize = 14.sp,
+          fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+          maxLines = 1,
+        )
+        Spacer(Modifier.height(6.dp))
+        Box(
+          Modifier
+            .fillMaxWidth()
+            .height(2.dp)
+            .background(if (selected) p.primary else androidx.compose.ui.graphics.Color.Transparent),
+        )
+      }
+    }
+  }
+}
+
+@Composable
+fun SourceSelector(
+  label: String,
+  options: List<Pair<String, Boolean>>,
+  onSelect: (Int) -> Unit,
+) {
+  val p = LocalPalette.current
+  var expanded by remember { mutableStateOf(false) }
+  Box {
+    Row(
+      Modifier
+        .defaultMinSize(minHeight = 40.dp)
+        .pressClickable { expanded = true }
+        .padding(horizontal = 4.dp, vertical = 6.dp),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Text(label, color = p.textSecondary, fontSize = 13.sp)
+      Spacer(Modifier.width(4.dp))
+      Icon(AppIcons.ChevronDown, null, tint = p.textTertiary, modifier = Modifier.size(16.dp))
+    }
+    androidx.compose.material3.DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, containerColor = p.surface) {
+      options.forEachIndexed { index, (text, selected) ->
+        androidx.compose.material3.DropdownMenuItem(
+          text = {
+            Text(text, color = if (selected) p.primary else p.text, fontSize = 14.sp, fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal)
+          },
+          onClick = {
+            expanded = false
+            onSelect(index)
+          },
+        )
+      }
+    }
   }
 }

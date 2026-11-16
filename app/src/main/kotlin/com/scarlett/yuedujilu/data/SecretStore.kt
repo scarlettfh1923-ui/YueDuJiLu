@@ -9,6 +9,8 @@ interface SecretStore {
   fun setShowApiKey(value: String?)
   fun getDeepSeekKey(): String?
   fun setDeepSeekKey(value: String?)
+  fun getWereadKey(): String?
+  fun setWereadKey(value: String?)
 }
 
 class KeystoreSecretStore(context: Context) : SecretStore {
@@ -28,18 +30,26 @@ class KeystoreSecretStore(context: Context) : SecretStore {
   override fun setDeepSeekKey(value: String?) {
     prefs.edit().putString(KEY_DEEPSEEK, value?.trim().orEmpty()).apply()
   }
+  override fun getWereadKey(): String? = prefs.getString(KEY_WEREAD, null)?.takeIf { it.isNotBlank() }
+  override fun setWereadKey(value: String?) {
+    prefs.edit().putString(KEY_WEREAD, value?.trim().orEmpty()).apply()
+  }
 
   companion object {
     private const val KEY_SHOWAPI = "showapi_appkey"
     private const val KEY_DEEPSEEK = "deepseek_apikey"
+    private const val KEY_WEREAD = "weread_apikey"
   }
 }
 
 class MemorySecretStore : SecretStore {
   private var show: String? = null
   private var deep: String? = null
+  private var weread: String? = null
   override fun getShowApiKey(): String? = show
   override fun setShowApiKey(value: String?) { show = value?.trim()?.takeIf { it.isNotEmpty() } }
   override fun getDeepSeekKey(): String? = deep
   override fun setDeepSeekKey(value: String?) { deep = value?.trim()?.takeIf { it.isNotEmpty() } }
+  override fun getWereadKey(): String? = weread
+  override fun setWereadKey(value: String?) { weread = value?.trim()?.takeIf { it.isNotEmpty() } }
 }

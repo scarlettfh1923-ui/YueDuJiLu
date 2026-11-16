@@ -38,8 +38,11 @@ fun MineScreen(vm: AppViewModel, state: AppUiState) {
   ) {
     Group("阅读连接") {
       SettingsRow(
-        title = "微信读书接入",
-        subtitle = "暂无接入，不会假装已经同步",
+        title = "微信读书",
+        subtitle = when {
+          state.hasWereadKey && state.snapshot.settings.wereadImportStartDate != null -> "已保存连接，可同步阅读时长与划线想法"
+          else -> "尚未连接微信读书"
+        },
         icon = AppIcons.Link,
         onClick = { vm.go(Route.Weread) },
       )

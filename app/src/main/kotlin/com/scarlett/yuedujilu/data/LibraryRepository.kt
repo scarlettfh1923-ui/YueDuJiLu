@@ -205,4 +205,12 @@ class LibraryRepository(private val store: JsonLibraryStore) {
     createdAtEpochMs = now,
     updatedAtEpochMs = now,
   )
+
+  suspend fun replaceWereadDuration(days: List<com.scarlett.yuedujilu.domain.WereadDayRecord>) =
+    store.update { it.copy(wereadDays = days) }
+
+  suspend fun replaceWereadNotes(
+    days: List<com.scarlett.yuedujilu.domain.WereadDayRecord>,
+    notes: List<com.scarlett.yuedujilu.domain.WereadNoteItem>,
+  ) = store.update { it.copy(wereadDays = days, wereadNotes = notes) }
 }
