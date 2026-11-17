@@ -124,28 +124,31 @@ object StatsOverview {
     calendarMonth: YearMonth? = null,
   ): OverviewReport {
     val span = resolveSpan(period, anchor, today)
-    val prev = span?.let { previousSpan(period, it) }
+    val prev = span?.let { current -> previousSpan(period,current)?.let { full ->
+      if(current.end.isAfter(today)) DateSpan(full.start,minOf(full.end,full.start.plusDays((current.elapsedDays(today)-1).coerceAtLeast(0).toLong()))) else full
+    } }
+    val latestWeread=wereadDays.groupBy { it.accountHash to it.date }.values.mapNotNull { it.maxByOrNull { r->r.updatedAtEpochMs } }
     val queryEnd = span?.elapsedEnd(today) ?: today
     val queryStart: LocalDate? = span?.start
-    val current = compute(sessions, books, wereadDays, queryStart, queryEnd, today, nowEpochMs, source, wereadAccountHash, wereadCoverageStart, wereadCoverageEnd, zone)
+    val current = compute(sessions, books, latestWeread, queryStart, queryEnd, today, nowEpochMs, source, wereadAccountHash, wereadCoverageStart, wereadCoverageEnd, zone)
     val previous = if (prev != null) {
-      compute(sessions, books, wereadDays, prev.start, prev.elapsedEnd(today), today, nowEpochMs, source, wereadAccountHash, wereadCoverageStart, wereadCoverageEnd, zone)
+      compute(sessions, books, latestWeread, prev.start, prev.elapsedEnd(today), today, nowEpochMs, source, wereadAccountHash, wereadCoverageStart, wereadCoverageEnd, zone)
     } else null
-    val cmpLabel = previousCompareLabel(period)
+    val cmpLabel = previousCompareLabel(period)?.let { if(span?.end?.isAfter(today)==true) it+"同期" else it }
     val markedMonth = calendarMonth ?: YearMonth.from(anchor)
-    val marked = markedDays(sessions, wereadDays, markedMonth, nowEpochMs, source, wereadAccountHash, wereadCoverageStart, wereadCoverageEnd, zone)
+    val marked = markedDays(sessions, latestWeread, markedMonth, nowEpochMs, source, wereadAccountHash, wereadCoverageStart, wereadCoverageEnd, zone)
     return OverviewReport(
       span = span,
       previousSpan = prev,
       periodLabel = periodLabel(period, span, today),
       canGoForward = canShiftForward(period, anchor, today),
-      days = withCompare(current.days, previous?.days, cmpLabel),
-      durationMs = withCompare(current.durationMs, previous?.durationMs, cmpLabel),
-      booksRead = withCompare(current.booksRead, previous?.booksRead, cmpLabel),
-      booksFinished = withCompare(current.booksFinished, previous?.booksFinished, cmpLabel),
-      streak = withCompare(current.streak, previous?.streak, cmpLabel),
-      dailyAverageMs = withCompare(current.dailyAverageMs, previous?.dailyAverageMs, cmpLabel),
-      notes = withCompare(current.notes, previous?.notes, cmpLabel),
+      days = withCompare(current.days, previous?.days, cmpLabel, MetricUnit.DAYS),
+      durationMs = withCompare(current.durationMs, previous?.durationMs, cmpLabel, MetricUnit.DURATION),
+      booksRead = withCompare(current.booksRead, previous?.booksRead, cmpLabel, MetricUnit.BOOKS),
+      booksFinished = withCompare(current.booksFinished, previous?.booksFinished, cmpLabel, MetricUnit.BOOKS),
+      streak = withCompare(current.streak, previous?.streak, cmpLabel, MetricUnit.DAYS),
+      dailyAverageMs = withCompare(current.dailyAverageMs, previous?.dailyAverageMs, cmpLabel, MetricUnit.DURATION),
+      notes = withCompare(current.notes, previous?.notes, cmpLabel, MetricUnit.NOTES),
       coverageNote = current.coverageNote,
       markedDays = marked,
     )
@@ -193,6 +196,10 @@ object StatsOverview {
     wereadEnd: LocalDate?,
     zone: ZoneId,
   ): Slice {
+    if(start!=null && start.isAfter(end)) {
+      val missing=MetricValue.Missing("未来区间暂无已过日期")
+      return Slice(missing,missing,missing,missing,missing,missing,missing,"未来区间不计零、不计算环比")
+    }
     val includePhysical = source != SourceFilter.WEREAD
     val includeWeread = source != SourceFilter.PHYSICAL
     val wereadConnected = !hash.isNullOrBlank() && wereadStart != null && wereadEnd != null && !wereadEnd.isBefore(wereadStart)
@@ -315,6 +322,10 @@ object StatsOverview {
       else -> MetricValue.Known(duration)
     }
 
+    // An explicit finish is an interval reading record too, even without a timer.
+    if(includePhysical)books.filter { book->book.source!=BookSource.WEREAD&&book.status==BookStatus.FINISHED&&book.finishedAtEpochMs?.let{at->
+      val day=Instant.ofEpochMilli(at).atZone(zone).toLocalDate();!day.isAfter(end)&&(start==null||!day.isBefore(start))
+    }==true }.forEach{physicalBooks+=it.id}
     val booksValue: MetricValue = when {
       source == SourceFilter.WEREAD ->
         MetricValue.Missing("未提供（微信读书区间本数无明细，不会用书架存量代替）")
@@ -385,7 +396,7 @@ object StatsOverview {
       includeWeread = includeWeread,
       wereadConnected = wereadConnected,
       hash = hash,
-      wereadDays = wereadDays,
+      wereadDays = wereadDays.filter { rec->WereadImport.parseDate(rec.date)?.let { date->wereadStart!=null&&wereadEnd!=null&&!date.isBefore(wereadStart)&&!date.isAfter(wereadEnd) }==true },
       start = start,
       end = end,
     )
@@ -472,19 +483,22 @@ object StatsOverview {
     var thoughts = 0
     var anyComplete = false
     var incomplete = false
+    val completeDates=mutableSetOf<LocalDate>()
     for (rec in wereadDays) {
       if (rec.accountHash != hash) continue
       val date = WereadImport.parseDate(rec.date) ?: continue
       if (date.isAfter(end)) continue
       if (start != null && date.isBefore(start)) continue
-      if (!rec.notesComplete) {
+      if (!rec.notesComplete || rec.highlightCount==null || rec.thoughtCount==null) {
         incomplete = true
         continue
       }
       anyComplete = true
-      highlights += rec.highlightCount ?: 0
-      thoughts += rec.thoughtCount ?: 0
+      completeDates+=date
+      highlights += rec.highlightCount
+      thoughts += rec.thoughtCount
     }
+    if(start!=null && completeDates.size < ChronoUnit.DAYS.between(start,end)+1)incomplete=true
     if (!anyComplete) {
       return MetricValue.Missing(if (incomplete) "笔记数据不完整，暂不计数" else "未提供（此区间没有完整的划线与想法）")
     }
@@ -497,7 +511,7 @@ object StatsOverview {
     )
   }
 
-  private fun withCompare(current: MetricValue, previous: MetricValue?, label: String?): MetricValue {
+  private fun withCompare(current: MetricValue, previous: MetricValue?, label: String?, unit: MetricUnit): MetricValue {
     val cur = current as? MetricValue.Known ?: return current
     val prev = previous as? MetricValue.Known
     if (prev == null || label == null) return cur
@@ -507,8 +521,8 @@ object StatsOverview {
     }
     val delta = cur.value - prev.value
     val compare = when {
-      delta > 0L -> "$label +${formatDelta(cur, delta)}"
-      delta < 0L -> "$label -${formatDelta(cur, -delta)}"
+      delta > 0L -> "$label +${formatDelta(unit, delta)}"
+      delta < 0L -> "$label -${formatDelta(unit, -delta)}"
       else -> "$label 持平"
     }
     return cur.copy(compare = compare)
@@ -516,10 +530,18 @@ object StatsOverview {
 
   private fun looksIncomplete(note: String?): Boolean {
     if (note == null) return false
-    return note.contains("少计") || note.contains("不完整") || note.contains("缺失")
+    return note.contains("少计") || note.contains("不完整") || note.contains("缺失") || note.contains("未完整")
   }
 
-  private fun formatDelta(metric: MetricValue.Known, abs: Long): String = abs.toString()
+  private enum class MetricUnit { DURATION,DAYS,BOOKS,NOTES }
+  private fun formatDelta(unit:MetricUnit, abs:Long):String=when(unit) {
+    MetricUnit.DURATION->durationText(abs)
+    MetricUnit.DAYS->"${abs}天";MetricUnit.BOOKS->"${abs}本";MetricUnit.NOTES->"${abs}条"
+  }
+  fun durationText(ms:Long):String {
+    val seconds=ms.coerceAtLeast(0L)/1000;val h=seconds/3600;val m=seconds%3600/60;val sec=seconds%60
+    return buildString { if(h>0)append("${h}小时");if(m>0)append("${m}分");if(sec>0 || (h==0L&&m==0L))append("${sec}秒") }
+  }
 
   private fun previousCompareLabel(period: StatsPeriod): String? = when (period) {
     StatsPeriod.WEEK -> "较上周"

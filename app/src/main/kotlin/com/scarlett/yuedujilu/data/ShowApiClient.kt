@@ -44,24 +44,27 @@ class ShowApiClient(
     if (appKey.isBlank()) return@withContext ShowApiResult.MissingKey
     val cleaned = isbn.filter { it.isDigit() || it.equals('X', true) }
     if (cleaned.isEmpty()) return@withContext ShowApiResult.Failed("ISBN 为空")
+    var conn:HttpURLConnection?=null
+    try {
     val url = URL("$endpoint?appKey=${URLEncoder.encode(appKey, "UTF-8")}")
-    val conn = (url.openConnection() as HttpURLConnection).apply {
+    val active = (url.openConnection() as HttpURLConnection).apply {
       requestMethod = "POST"
       connectTimeout = 12_000
       readTimeout = 15_000
       doOutput = true
       setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
     }
-    try {
+    conn=active
       val body = "isbn=${URLEncoder.encode(cleaned, "UTF-8")}"
-      conn.outputStream.use { it.write(body.toByteArray(StandardCharsets.UTF_8)) }
-      val text = (if (conn.responseCode in 200..299) conn.inputStream else conn.errorStream)
+      active.outputStream.use { it.write(body.toByteArray(StandardCharsets.UTF_8)) }
+      val text = (if (active.responseCode in 200..299) active.inputStream else active.errorStream)
         ?.bufferedReader()?.readText().orEmpty()
-      parse(text, conn.responseCode)
+      parse(text, active.responseCode)
+    } catch(e:kotlinx.coroutines.CancellationException) { throw e
     } catch (e: Exception) {
       ShowApiResult.Failed("网络请求失败：${sanitizeNetworkError(e)}")
     } finally {
-      conn.disconnect()
+      conn?.disconnect()
     }
   }
 
@@ -99,7 +102,7 @@ class ShowApiClient(
           author = field("author"),
           publisher = field("publisher"),
           pubdate = field("pubdate"),
-          page = pageRaw.toIntOrNull() ?: data["page"]?.jsonPrimitive?.intOrNull?.takeIf { it > 0 },
+          page = pageRaw.toIntOrNull()?.takeIf { it > 0 } ?: data["page"]?.jsonPrimitive?.intOrNull?.takeIf { it > 0 },
           isbn = field("isbn"),
           img = field("img").takeIf { it.isNotEmpty() },
         )

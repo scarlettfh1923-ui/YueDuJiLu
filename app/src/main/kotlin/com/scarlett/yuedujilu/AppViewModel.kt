@@ -25,6 +25,7 @@ import com.scarlett.yuedujilu.domain.StatsOverview
 import com.scarlett.yuedujilu.domain.StatsPeriod
 import com.scarlett.yuedujilu.domain.ThemeId
 import com.scarlett.yuedujilu.domain.Zones
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,6 +48,7 @@ enum class SourceFilter { ALL, PHYSICAL, WEREAD }
 sealed interface Route {
   data object Main : Route
   data class BookDetail(val bookId: String) : Route
+  data class StatsDetail(val metric: com.scarlett.yuedujilu.domain.StatsMetric) : Route
   data class EditBook(val bookId: String?, val presetIsbn: String? = null, val presetTitle: String? = null, val presetAuthor: String? = null, val presetPages: Int? = null) : Route
   data object IsbnEntry : Route
   data object ScanIsbn : Route
@@ -118,6 +120,8 @@ class AppViewModel(
   private val _wereadBusy = MutableStateFlow(false)
   private val _wereadProgress = MutableStateFlow<String?>(null)
   private var wereadJob: Job? = null
+  private var isbnLookupJob: Job? = null
+  private var isbnLookupGeneration=0L
   private val backStack = ArrayDeque<Route>()
 
   val ui: StateFlow<AppUiState> = combine(
@@ -170,7 +174,10 @@ class AppViewModel(
     viewModelScope.launch { library.confirmPhysicalUnread(date.toString(), confirmed) }
   }
 
-  fun setTab(tab: MainTab) { _tab.value = tab }
+  fun setTab(tab: MainTab) {
+    if(_route.value is Route.StatsDetail) { _route.value=Route.Main;backStack.clear() }
+    _tab.value = tab
+  }
   fun setQuery(q: String) { _query.value = q }
   fun setStatus(f: StatusFilter) { _status.value = f }
   fun setSource(f: SourceFilter) { _source.value = f }
@@ -203,6 +210,7 @@ class AppViewModel(
   fun toast(text: String, error: Boolean = false) { _message.value = UiMessage(text, error) }
 
   fun go(route: Route) {
+    if(route is Route.StatsDetail) _tab.value=MainTab.STATS
     val current = _route.value
     if (current != Route.Main) backStack.addLast(current)
     else if (route != Route.Main) backStack.clear().also { backStack.addLast(Route.Main) }
@@ -211,6 +219,7 @@ class AppViewModel(
   }
 
   fun back() {
+    isbnLookupGeneration++;isbnLookupJob?.cancel();_lookupBusy.value=false
     _route.value = if (backStack.isNotEmpty()) backStack.removeLast() else Route.Main
   }
 
@@ -355,7 +364,11 @@ class AppViewModel(
       }
     }
 
-  fun lookupIsbn(isbn: String, onFoundOpenEdit: Boolean = true) = viewModelScope.launch {
+  fun lookupIsbn(isbn: String, onFoundOpenEdit: Boolean = true):Job {
+    isbnLookupJob?.cancel()
+    val generation=++isbnLookupGeneration
+    return viewModelScope.launch {
+    try {
     val key = secrets.getShowApiKey()
     if (key.isNullOrBlank()) {
       toast("尚未填写万维易源 AppKey，可先手填书目，或到「我的」里配置后再查", true)
@@ -369,7 +382,10 @@ class AppViewModel(
       return@launch
     }
     _lookupBusy.value = true
-    when (val r = showApi.lookup(key, isbn)) {
+    val result=showApi.lookup(key,isbn)
+    kotlin.coroutines.coroutineContext.ensureActive()
+    if(generation!=isbnLookupGeneration)return@launch
+    when (val r = result) {
       is ShowApiResult.Ok -> {
         toast("已查询到《${r.book.title}》")
         if (onFoundOpenEdit) {
@@ -397,7 +413,12 @@ class AppViewModel(
         go(Route.EditBook(null, presetIsbn = isbn))
       }
     }
-    _lookupBusy.value = false
+    } catch(e:kotlinx.coroutines.CancellationException) { throw e
+    } catch(e:Exception) {
+      toast("查询暂时失败（${e.javaClass.simpleName}）。ISBN已保留，可手填",true)
+      go(Route.EditBook(null,presetIsbn=isbn))
+    } finally { if(generation==isbnLookupGeneration)_lookupBusy.value=false }
+    }.also{isbnLookupJob=it}
   }
 
   fun saveShowApiKey(key: String) {

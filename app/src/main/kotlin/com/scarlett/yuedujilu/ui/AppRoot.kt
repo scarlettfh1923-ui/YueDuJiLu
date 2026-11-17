@@ -98,7 +98,7 @@ fun AppRoot(vm: AppViewModel, state: AppUiState) {
   ) {
     routeState.SaveableStateProvider(state.route.toString()) {
     when (val route = state.route) {
-      Route.Main -> MainTabs(vm, state)
+      Route.Main, is Route.StatsDetail -> MainTabs(vm, state)
       is Route.BookDetail -> BookDetailScreen(vm, state, route.bookId)
       is Route.EditBook -> EditBookScreen(vm, state, route)
       Route.IsbnEntry -> IsbnEntryScreen(vm, state)
@@ -142,7 +142,7 @@ private fun MainTabs(vm: AppViewModel, state: AppUiState) {
       // Commit exactly one page. Crossfade superimposed outgoing/incoming text.
       // The independent liquid-nav indicator and press feedback still animate.
       tabState.SaveableStateProvider(state.tab.name) {
-        when (state.tab) {
+        if(state.route is Route.StatsDetail) com.scarlett.yuedujilu.ui.stats.StatsDetailScreen(vm,state,state.route.metric) else when (state.tab) {
           MainTab.SHELF -> ShelfScreen(vm, state)
           MainTab.STATS -> StatsScreen(vm, state)
           MainTab.MINE -> MineScreen(vm, state)

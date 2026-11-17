@@ -10,6 +10,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
@@ -24,20 +25,26 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 @Composable
-internal fun ReadingCalendarPanel(vm:AppViewModel,state:AppUiState,hash:String?,today:LocalDate) {
+internal fun ReadingCalendarPanel(vm:AppViewModel,state:AppUiState,hash:String?,today:LocalDate,allowedSpan:DateSpan?=null) {
   val p=LocalPalette.current
-  val month=state.calendarMonth
-  var selectedRaw by rememberSaveable { mutableStateOf(today.toString()) }
+  var detailMonth by rememberSaveable(allowedSpan?.toString()) {mutableStateOf((allowedSpan?.start?:today).withDayOfMonth(1).toString())}
+  val month=if(allowedSpan==null)state.calendarMonth else YearMonth.from(LocalDate.parse(detailMonth))
+  var selectedRaw by rememberSaveable(allowedSpan?.toString()) { mutableStateOf((allowedSpan?.let{minOf(maxOf(today,it.start),it.end)}?:today).toString()) }
+  LaunchedEffect(month) { if(YearMonth.from(LocalDate.parse(selectedRaw))!=month)selectedRaw=maxOf(month.atDay(1),allowedSpan?.start?:month.atDay(1)).toString() }
   val selected=LocalDate.parse(selectedRaw)
   val snapshot=state.snapshot
-  fun day(date:LocalDate)=ReadingCalendar.day(date,today,state.now,state.statsSource,snapshot.books,snapshot.sessions,snapshot.wereadDays,hash,snapshot.confirmedPhysicalUnreadDates)
+  val start=WereadImport.parseDate(snapshot.settings.wereadImportStartDate);val end=StatsOverview.parseSyncDate(snapshot.settings.wereadLastSyncAt)
+  val records=snapshot.wereadDays.filter{it.accountHash==hash&&start!=null&&end!=null&&WereadImport.parseDate(it.date)?.let{d->!d.isBefore(start)&&!d.isAfter(end)}==true}
+  val monthDays=ReadingCalendar.range(month.atDay(1),month.atEndOfMonth(),today,state.now,state.statsSource,snapshot.books,snapshot.sessions,records,hash,snapshot.confirmedPhysicalUnreadDates).associateBy{it.date}
+  fun day(date:LocalDate)=monthDays[date]?:ReadingCalendar.day(date,today,state.now,state.statsSource,snapshot.books,snapshot.sessions,records,hash,snapshot.confirmedPhysicalUnreadDates)
+  fun shift(delta:Long){ if(allowedSpan==null)vm.shiftMonth(delta) else detailMonth=month.plusMonths(delta).atDay(1).toString() }
   fun label(d:ReadingDayState)=when(d){ReadingDayState.READ->"已阅读";ReadingDayState.UNREAD->"确认未读";ReadingDayState.UNKNOWN->"数据未知";ReadingDayState.FUTURE->"未来"}
   SoftCard(Modifier.fillMaxWidth()) {
     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-      IconButtonCircle(AppIcons.ChevronLeft,"上个月",onClick={vm.shiftMonth(-1)})
+      Box(Modifier.size(52.dp)){ if(allowedSpan==null||month>YearMonth.from(allowedSpan.start))IconButtonCircle(AppIcons.ChevronLeft,"上个月",onClick={shift(-1)}) }
       Text("${month.year} 年 ${month.monthValue} 月",color=p.text,fontWeight=FontWeight.SemiBold,fontSize=18.sp,modifier=Modifier.weight(1f),textAlign=androidx.compose.ui.text.style.TextAlign.Center)
       Box(Modifier.size(52.dp),contentAlignment=Alignment.Center) {
-        if(month<YearMonth.from(today)) IconButtonCircle(AppIcons.ChevronRight,"下个月",onClick={vm.shiftMonth(1)})
+        if(month<YearMonth.from(minOf(today,allowedSpan?.end?:today))) IconButtonCircle(AppIcons.ChevronRight,"下个月",onClick={shift(1)})
       }
     }
     Spacer(Modifier.height(14.dp))
@@ -53,9 +60,9 @@ internal fun ReadingCalendarPanel(vm:AppViewModel,state:AppUiState,hash:String?,
             if(number in 1..month.lengthOfMonth()) {
               val date=month.atDay(number); val d=day(date);val chosen=date==selected
               val fill=when(d.state){ReadingDayState.READ->p.primary;ReadingDayState.UNREAD->p.primarySoft;else->Color.Transparent}
-              Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(CircleShape).background(fill)
+              Box(Modifier.fillMaxWidth().aspectRatio(1f).alpha(if(allowedSpan!=null&&date !in allowedSpan).4f else 1f).clip(CircleShape).background(fill)
                 .then(if(chosen)Modifier.border(1.5f.dp,p.primary,CircleShape) else Modifier)
-                .pressClickable { selectedRaw=date.toString() }
+                .pressClickable { if(allowedSpan==null||date in allowedSpan)selectedRaw=date.toString() }
                 .semantics { contentDescription="$date ${label(d.state)}"; this.selected=chosen },contentAlignment=Alignment.Center) {
                 Text(number.toString(),color=when(d.state){ReadingDayState.READ->p.onPrimary;ReadingDayState.FUTURE->p.textTertiary.copy(alpha=.4f);else->p.text},fontSize=14.sp)
                 if(d.state==ReadingDayState.UNKNOWN) Box(Modifier.align(Alignment.BottomCenter).padding(bottom=3.dp).size(3.dp).background(p.textTertiary,CircleShape))
@@ -76,6 +83,7 @@ internal fun ReadingCalendarPanel(vm:AppViewModel,state:AppUiState,hash:String?,
       } }
     }
   }
+  if(allowedSpan!=null)Text("仅统计所选区间，区间外日期淡显。",color=p.textSecondary,fontSize=12.sp,modifier=Modifier.padding(top=10.dp))
   Spacer(Modifier.height(16.dp))
   val d=day(selected)
   Text("${selected.monthValue} 月 ${selected.dayOfMonth} 日 · ${label(d.state)}",color=p.text,fontSize=17.sp,fontWeight=FontWeight.SemiBold)
@@ -95,7 +103,7 @@ internal fun ReadingCalendarPanel(vm:AppViewModel,state:AppUiState,hash:String?,
         }
       }
       if(state.statsSource!=SourceFilter.PHYSICAL) {
-        val wr=snapshot.wereadDays.filter{it.accountHash==hash && it.date==selected.toString()}.maxByOrNull{it.updatedAtEpochMs}
+        val wr=records.filter{it.accountHash==hash && it.date==selected.toString()}.maxByOrNull{it.updatedAtEpochMs}
         Text(if(wr?.durationSec!=null) "微信读书 · ${formatDurationZh(wr.durationSec*1000)}${if(wr.durationComplete)"" else "（记录未完整）"}" else "微信读书 · 该日尚无完整同步记录",color=p.textSecondary,fontSize=13.sp,lineHeight=21.sp,modifier=Modifier.padding(vertical=6.dp))
       }
       if(d.state==ReadingDayState.UNKNOWN) Text("记录不全，不能把空白当作没读。实体记录与微信日数据按日期合并。",color=p.textSecondary,fontSize=12.sp,lineHeight=20.sp)

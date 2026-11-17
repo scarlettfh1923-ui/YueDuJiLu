@@ -79,7 +79,7 @@ fun ShelfScreen(vm: AppViewModel, state: AppUiState) {
     ) {
       SearchField(state.query, vm::setQuery, Modifier.weight(1f))
       Spacer(Modifier.width(10.dp))
-      IconButtonCircle(AppIcons.Plus, "添加", emphasized = true, onClick = { vm.openPlus(true) })
+      IconButtonCircle(AppIcons.Plus, "添加", emphasized = false, onClick = { vm.openPlus(true) })
     }
     val statuses = listOf(
       StatusFilter.ALL to "全部",
@@ -134,7 +134,7 @@ fun ShelfScreen(vm: AppViewModel, state: AppUiState) {
       LazyColumn(
         modifier = Modifier.weight(1f),
         contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = MainBottomSpace.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
       ) {
         itemsIndexed(books, key = { _, b -> b.id }, contentType = { _, _ -> "book" }) { _, book ->
           BookRow(
@@ -206,29 +206,34 @@ fun BookRow(
   onAction: () -> Unit,
 ) {
   val p = LocalPalette.current
-  Column(Modifier.fillMaxWidth()) {
-    Row(Modifier.fillMaxWidth().pressClickable(onClick=onOpen),verticalAlignment=Alignment.Top) {
-      CoverPlate(book,width=92.dp)
-      Spacer(Modifier.width(16.dp))
-      Column(Modifier.weight(1f)) {
-        Text(book.title,color=p.text,fontSize=19.sp,lineHeight=25.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
-        if(book.author.isNotBlank()) Text(book.author,color=p.textSecondary,fontSize=13.sp,maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.padding(top=5.dp))
-        Text(book.sourceLabel(),color=p.primary,fontSize=11.sp,fontWeight=FontWeight.Medium,
-          modifier=Modifier.padding(top=10.dp).clip(UiShape.Capsule).background(p.primarySoft).padding(horizontal=12.dp,vertical=5.dp))
-        if(book.source!=BookSource.WEREAD) {
-          Text(book.progressLabel(),color=p.textSecondary,fontSize=13.sp,modifier=Modifier.padding(top=9.dp))
-          if((book.pageCount?:0)>0) {
-            val progress=(book.currentPage.toFloat()/(book.pageCount?:1).coerceAtLeast(1)).coerceIn(0f,1f)
-            Box(Modifier.padding(top=8.dp,bottom=12.dp).fillMaxWidth().height(3.dp).clip(UiShape.Capsule).background(p.track)) {
-              Box(Modifier.fillMaxWidth(progress).height(3.dp).background(p.primary))
-            }
-          } else Spacer(Modifier.height(12.dp))
-          PrimaryButton(when {timerRunningOnThis->"查看计时";book.currentPage>0->"继续阅读";else->"开始阅读"},onAction,Modifier.fillMaxWidth())
-        } else Text("查看记录",color=p.primary,fontSize=13.sp,modifier=Modifier.padding(top=12.dp))
-      }
+  Row(Modifier.fillMaxWidth().shadow(7.dp,UiShape.Regular,ambientColor=p.text.copy(alpha=.24f),spotColor=p.text.copy(alpha=.24f))
+    .clip(UiShape.Regular).background(p.surfaceRaised).pressClickable(onClick=onOpen).padding(20.dp),verticalAlignment=Alignment.Top) {
+    CoverPlate(book,width=104.dp)
+    Spacer(Modifier.width(20.dp))
+    Column(Modifier.weight(1f)) {
+      Text(book.title,color=p.text,fontSize=20.sp,lineHeight=27.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
+      if(book.author.isNotBlank()) Text(book.author,color=p.textSecondary,fontSize=13.sp,maxLines=2,overflow=TextOverflow.Ellipsis,modifier=Modifier.padding(top=5.dp))
+      Text(book.sourceLabel(),color=p.textSecondary,fontSize=11.sp,
+        modifier=Modifier.padding(top=12.dp).clip(UiShape.Capsule).background(p.primarySoft.copy(alpha=.55f)).padding(horizontal=9.dp,vertical=4.dp))
+      if(book.source!=BookSource.WEREAD) {
+        Spacer(Modifier.height(12.dp))
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+          Text(book.progressLabel(),color=p.text,fontSize=13.sp,modifier=Modifier.weight(1f))
+          if((book.pageCount?:0)>0)Text("${(book.currentPage.toLong()*100/(book.pageCount?:1).coerceAtLeast(1)).coerceIn(0,100)}%",color=p.textSecondary,fontSize=11.sp)
+        }
+        val progress=if((book.pageCount?:0)>0)(book.currentPage.toFloat()/book.pageCount!!).coerceIn(0f,1f) else 0f
+        Box(Modifier.padding(top=8.dp).fillMaxWidth().height(3.dp).clip(UiShape.Capsule).background(p.track)) {
+          Box(Modifier.fillMaxWidth(progress).height(3.dp).background(p.primary.copy(alpha=.65f)))
+        }
+        Spacer(Modifier.height(24.dp))
+        Box(Modifier.defaultMinSize(minHeight=48.dp).pressClickable(onClick=onAction),contentAlignment=Alignment.CenterStart) {
+          Row(Modifier.clip(UiShape.Capsule).background(p.primarySoft).padding(horizontal=14.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically) {
+            Icon(AppIcons.Play,null,tint=p.primary,modifier=Modifier.size(13.dp))
+            Text(when {timerRunningOnThis->"查看计时";book.currentPage>0->"继续阅读";else->"开始阅读"},color=p.primary,fontWeight=FontWeight.SemiBold,fontSize=12.sp,modifier=Modifier.padding(start=5.dp))
+          }
+        }
+      } else Text("查看记录",color=p.primary,fontSize=13.sp,modifier=Modifier.padding(top=20.dp))
     }
-    Spacer(Modifier.height(20.dp))
-    Box(Modifier.fillMaxWidth().height(1.dp).background(p.stroke.copy(alpha=.5f)))
   }
 }
 
@@ -237,11 +242,14 @@ fun BookRow(
 fun CoverPlate(book: Book, width: androidx.compose.ui.unit.Dp) {
   val p=LocalPalette.current
   val shape=UiShape.Regular
-  Box(Modifier.size(width,width*1.48f).clip(shape).background(p.primarySoft)) {
+  Box(Modifier.width(width).height(width*1.52f).shadow(4.dp,shape,ambientColor=p.shadow,spotColor=p.shadow)
+    .clip(shape).background(p.surfaceMuted)) {
+    Box(Modifier.align(Alignment.CenterEnd).width(5.dp).height(width*1.52f).background(p.stroke))
+    Box(Modifier.align(Alignment.CenterEnd).padding(end=2.dp).width(1.dp).height(width*1.52f).background(p.surface))
     Box(Modifier.padding(start=7.dp).width(1.dp).height(width*1.48f).background(p.primary.copy(alpha=.2f)))
     Column(Modifier.fillMaxSize().padding(horizontal=14.dp,vertical=20.dp),verticalArrangement=Arrangement.SpaceBetween) {
       Text(book.title,color=p.text,fontSize=if(width.value>85)14.sp else 12.sp,lineHeight=20.sp,fontWeight=FontWeight.Medium,maxLines=4,overflow=TextOverflow.Ellipsis)
-      Icon(AppIcons.Shelf,null,tint=p.primary.copy(alpha=.55f),modifier=Modifier.size(20.dp))
+      Text("暂无封面",color=p.textSecondary,fontSize=10.sp)
     }
   }
 }

@@ -197,7 +197,7 @@ private fun CameraIsbnPreview(
     // 本页不绘制条码框，不需要视图坐标。
     analysis.setAnalyzer(
       executor,
-      MlKitAnalyzer(listOf(scanner), ImageAnalysis.COORDINATE_SYSTEM_ORIGINAL, executor) { result ->
+      MlKitAnalyzer(listOf(scanner), ImageAnalysis.COORDINATE_SYSTEM_ORIGINAL, mainExec) { result ->
         if (disposed.get() || taken.get()) return@MlKitAnalyzer
         val err = result.getThrowable(scanner)
         if (err != null) {
@@ -231,7 +231,6 @@ private fun CameraIsbnPreview(
         val p = future.get()
         if (disposed.get()) return@addListener
         provider = p
-        p.unbindAll()
         p.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
       } catch (e: Exception) {
         val msg = "无法打开相机：${e.message ?: e.javaClass.simpleName}。请改用手输 ISBN。"
@@ -241,9 +240,11 @@ private fun CameraIsbnPreview(
 
     onDispose {
       disposed.set(true)
-      runCatching { provider?.unbindAll() }
       runCatching { analysis.clearAnalyzer() }
+      runCatching { provider?.unbind(preview, analysis) }
       runCatching { scanner.close() }
+      // Only the frame worker stops. MLKit completion callbacks use mainExec and may
+      // still close an in-flight ImageProxy after this composition is disposed.
       executor.shutdown()
     }
   }

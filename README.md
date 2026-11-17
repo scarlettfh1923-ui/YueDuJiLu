@@ -1,6 +1,6 @@
 # 书蠹（YueDuJiLu）
 
-本地优先的实体书阅读记录应用。包名 `com.scarlett.yuedujilu`，当前版本为 **1.0.3 青瓷预览版**（versionName `1.0.3`，versionCode 4）。上版为1.0.2。包名、签名与数据文件兼容条件保持不变，不清除用户数据。
+本地优先的实体书阅读记录应用。包名 `com.scarlett.yuedujilu`，当前版本为 **1.0.4 预览版**（versionName `1.0.4`，versionCode 5）。上一版为1.0.3/code4。包名、签名与数据文件兼容条件保持不变，不清除用户数据。
 
 仓库：https://github.com/scarlettfh1923-ui/YueDuJiLu
 
@@ -10,17 +10,28 @@
 
 请从 GitHub Release 下载，APK 不纳入 git 跟踪。
 
-- 当前预发布：https://github.com/scarlettfh1923-ui/YueDuJiLu/releases/tag/v1.0.3-preview
-- 附件：`ShuDu-1.0.3.apk` 以及同名 `.sha256`
-- SHA-256：`4eb5f0c464bad5f61bc13c704a10baf133a218ec9e3c1f634bce10225cfc1408`
-- 上一版：https://github.com/scarlettfh1923-ui/YueDuJiLu/releases/tag/v1.0.2-preview
+- 当前预发布：https://github.com/scarlettfh1923-ui/YueDuJiLu/releases/tag/v1.0.4-preview
+- 附件：`ShuDu-1.0.4.apk` 以及同名 `.sha256`
+- SHA-256：`9d5057caa81ef2596787f4bdec51c3bba6a53a491c82402995b2d3471fbd7507`
+- 上一版：https://github.com/scarlettfh1923-ui/YueDuJiLu/releases/tag/v1.0.3-preview
+- 1.0.2：https://github.com/scarlettfh1923-ui/YueDuJiLu/releases/tag/v1.0.2-preview
 - 更早：https://github.com/scarlettfh1923-ui/YueDuJiLu/releases/tag/v1.0.0-preview
 - minSdk 26，targetSdk 35，compileSdk 36
 - 独立签名，APK Signature Scheme v2。证书 DN：`CN=Scarlett YueDuJiLu, OU=Personal, O=Scarlett, L=Shanghai, ST=Shanghai, C=CN`
 
-**真机（含小米15）、相机实扫、真实账号同步与实机覆盖升级尚未完成。** 1.0.3候选已采用生产Compose组件的API35原生HWUI离屏渲染验证，不是SVG设计稿；这不等同设备GPU或系统窗口实测。
+**真机（含小米15）、相机实扫、真实账号同步与实机覆盖升级尚未完成。** 1.0.4采用生产Compose组件的API35原生HWUI离屏渲染验证，不是SVG设计稿；这不等同设备GPU或系统窗口实测。
 
-## 1.0.3 书蠹 · 青瓷预览版
+## 1.0.4 · 书架层次与六项统计详情
+
+- 按获批v4书架与v6统计稿实施：轻浮白卡、真实48dp操作热区内的紧凑胶囊、统一22dp卡片、六枚原创细线矢量。书封仍诚实显示「暂无封面」，未擅接图库或评分源。
+- 六卡顺序为时长/天数、实体/电子、连续/日均，每项均可进入继承周期与来源的真实详情。时长趋势与来源拆分；四态日历与点日记录；实体区间书单/当前进度/主动完读；微信时长及实际返回的划线/想法；连续日期范围与最长下限；自然日日均与阅读日日均口径。
+- 不用微信缺失数据补零或伪造精确本数。按账号与日期选最新微信记录，明确区分未知、确认未读、未来。历史周详情不再默认显示区间外的今天。
+- 修复已在隔离测试中复现的扫码退出执行器竞态：MLKit完成回调使用主执行器，与会关闭的图像分析worker分离。保留CameraX ORIGINAL和严格ISBN/QR校验。查询增加正确取消与finally边界；离开后不再被迟到结果拉回编辑页。没有设备日志，不能声称已确认或彻底排除小米上的实际崩溃。
+- 修复环比直接暴露毫秒（例如-17984000）的问题，改为带正负号的中文时分秒；当前未结束周期只与上期相同已过天数比较。不完整来源不比较。
+- 包名、显示名、选定墨蓝书脊图标、数据库/偏好标识、原签名与四主题兼容策略不变。版本号升为code5。未新增封面/豆瓣、未升级AGP/Compose。
+- 测试与限制见[1.0.4验证说明](docs/UI-1.0.4.md)。98项测试、55张原生离屏图与导航动画质量审核通过；这不等同真机性能或实扫验证。
+
+## 1.0.3 书蠹 · 青瓷预览版（历史记录）
 
 - 应用显示名改为「书蠹」；包名仍为`com.scarlett.yuedujilu`，仓库/目录、签名钥匙与`library.json`等数据标识不变。versionCode从已发布1.0.2的3升到4；未清数据。原有“阅读记录”作为记录类型/页面功能名称保留。
 
@@ -50,7 +61,7 @@
 
 ## 测试
 
-70项单元、交互和原生渲染测试通过（0失败，0跳过）；Release Lint无错误（35条主要为版本/风格提醒）。36张逐页/边界原生PNG与64帧导航动画留作本地质量审阅。测试使用Robolectric4.16，API35、NATIVE图形模式和PixelCopy硬件渲染路径。包括全部页面、360/432dp宽度、1.0/1.3字体、四主题、空态/长书名/长指标、导航取消/快速重定向/滚动恢复与日历真实性。测试夹具仅位于test源集，不进入生产APK；未使用真实账号或真实密钥。
+98项单元、交互和原生渲染测试通过（0失败，0跳过）；Release Lint无错误（36条版本/风格等提醒）。55张逐页/边界原生PNG与64帧导航动画留作本地质量审阅。测试使用Robolectric4.16，API35、NATIVE图形模式和PixelCopy硬件渲染路径。包括全部页面、360/432dp宽度、1.0/1.3字体、四主题、空态/长书名/长指标、导航取消/快速重定向/滚动恢复与日历真实性。测试夹具仅位于test源集，不进入生产APK；未使用真实账号或真实密钥。
 
 构建使用JDK17工具链；Backdrop发布字节码要求宿主测试JVM为JDK21。AGP、Compose和compileSdk未升级。示例（按本机路径替换）：
 

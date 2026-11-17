@@ -18,11 +18,28 @@ object ReadingCalendar {
     books: List<Book>, sessions: List<ReadingSession>, wereadDays: List<WereadDayRecord>,
     accountHash: String?, confirmedPhysicalUnreadDates: Set<String> = emptySet(),
   ): ReadingDay {
-    val wereadIds=books.filter { it.source==BookSource.WEREAD }.map { it.id }.toSet()
-    val daySessions=sessions.filter { it.bookId !in wereadIds && (ReadingMath.splitDurationByDay(it,now,Zones.Shanghai)[date]?:0)>0 }
-    val physical=daySessions.sumOf { ReadingMath.splitDurationByDay(it,now,Zones.Shanghai)[date]?:0L }
-    // Dedup by account/date, newest wins. Never sum repeated imports.
-    val wr=wereadDays.filter { !accountHash.isNullOrBlank() && it.accountHash==accountHash && it.date==date.toString() }.maxByOrNull { it.updatedAtEpochMs }
+    return range(date,date,today,now,source,books,sessions,wereadDays,accountHash,confirmedPhysicalUnreadDates).single()
+  }
+  /** Split each physical session once, not once per calendar cell or day of a long interval. */
+  fun range(start:LocalDate,end:LocalDate,today:LocalDate,now:Long,source:SourceFilter,
+    books:List<Book>,sessions:List<ReadingSession>,wereadDays:List<WereadDayRecord>,accountHash:String?,
+    confirmedPhysicalUnreadDates:Set<String> = emptySet()):List<ReadingDay> {
+    if(start.isAfter(end))return emptyList()
+    val wereadIds=books.filter{it.source==BookSource.WEREAD}.map{it.id}.toSet()
+    val perDay=mutableMapOf<LocalDate,MutableList<ReadingSession>>()
+    val totals=mutableMapOf<LocalDate,Long>()
+    sessions.filter{it.bookId !in wereadIds}.forEach { session->
+      ReadingMath.splitDurationByDay(session,now,Zones.Shanghai).forEach { (date,ms)->
+        if(ms>0 && !date.isBefore(start)&&!date.isAfter(end)) {
+          perDay.getOrPut(date){mutableListOf()}.add(session);totals[date]=(totals[date]?:0L)+ms
+        }
+      }
+    }
+    val byDate=wereadDays.filter{!accountHash.isNullOrBlank()&&it.accountHash==accountHash}.groupBy{it.date}.mapValues{it.value.maxByOrNull{r->r.updatedAtEpochMs}}
+    return generateSequence(start){it.plusDays(1)}.takeWhile{!it.isAfter(end)}.map { date->
+    val daySessions=perDay[date].orEmpty()
+    val physical=totals[date]?:0L
+    val wr=byDate[date.toString()]
     val wComplete=wr?.durationComplete==true && wr.durationSec!=null && wr.durationSec>=0
     val w=if(wComplete) wr!!.durationSec!!*1000L else null
     val pComplete=date.toString() in confirmedPhysicalUnreadDates && physical==0L
@@ -36,6 +53,7 @@ object ReadingCalendar {
       complete->ReadingDayState.UNREAD
       else->ReadingDayState.UNKNOWN
     }
-    return ReadingDay(date,state,if(includeP)physical else 0,if(includeW)w else null,pComplete,wComplete,if(includeP)daySessions else emptyList())
+    ReadingDay(date,state,if(includeP)physical else 0,if(includeW)w else null,pComplete,wComplete,if(includeP)daySessions else emptyList())
+    }.toList()
   }
 }

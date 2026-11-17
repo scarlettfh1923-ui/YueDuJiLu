@@ -49,7 +49,7 @@ object Palettes {
   )
   val PineGreen = YueDuPalette(
     id = ThemeId.PINE_GREEN,
-    background = Color(0xFFF3F7F5),
+    background = Color(0xFFEAF1ED),
     surface = Color(0xFFFFFFFF),
     surfaceMuted = Color(0xFFE9F0EC),
     primary = Color(0xFF246C60),

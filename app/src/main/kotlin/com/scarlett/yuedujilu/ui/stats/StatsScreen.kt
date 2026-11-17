@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.clip
@@ -71,23 +72,8 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
   val today = todayInShanghai(state.now)
   val settings = state.snapshot.settings
   val hash = vm.wereadAccountHash()
-  val wereadStart = WereadImport.parseDate(settings.wereadImportStartDate)
-  val wereadEnd = StatsOverview.parseSyncDate(settings.wereadLastSyncAt)
-  val report = StatsOverview.overview(
-    sessions = state.snapshot.sessions,
-    books = state.snapshot.books,
-    wereadDays = state.snapshot.wereadDays,
-    period = state.statsPeriod,
-    anchor = state.statsAnchor,
-    today = today,
-    nowEpochMs = state.now,
-    source = state.statsSource,
-    wereadAccountHash = hash,
-    wereadCoverageStart = wereadStart,
-    wereadCoverageEnd = wereadEnd,
-    zone = Zones.Shanghai,
-    calendarMonth = state.calendarMonth,
-  )
+  val bundle=rememberStatsBundle(state,hash)
+  val report=bundle.report
   Column(
     Modifier
       .fillMaxSize()
@@ -154,10 +140,10 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
         Text(state.wereadProgress ?: "正在同步微信读书…", color = p.textSecondary, fontSize = 12.sp)
       }
       Spacer(Modifier.height(12.dp))
-      OverviewCards(report)
+      OverviewCards(report,onSelect={vm.go(Route.StatsDetail(it))},source=state.statsSource)
       Spacer(Modifier.height(14.dp))
-      NotesStrip(report.notes)
-      Spacer(Modifier.height(12.dp))
+      Text("电子书仅含微信读书，精确本数暂未提供。轻点卡片查看真实明细与计算口径。",color=p.textSecondary,fontSize=12.sp,lineHeight=21.sp)
+      Spacer(Modifier.height(10.dp))
       Text(report.coverageNote, color = p.textTertiary, fontSize = 12.sp, lineHeight = 18.sp)
       settings.wereadLastMessage?.let {
         Spacer(Modifier.height(6.dp))
@@ -320,66 +306,67 @@ private fun periodChoices(period: StatsPeriod, today: LocalDate, anchor: LocalDa
 }
 
 @Composable
-internal fun OverviewCards(report: com.scarlett.yuedujilu.domain.OverviewReport) {
+internal fun OverviewCards(report:com.scarlett.yuedujilu.domain.OverviewReport,onSelect:(com.scarlett.yuedujilu.domain.StatsMetric)->Unit={},source:SourceFilter=SourceFilter.ALL) {
   val p=LocalPalette.current
-  // Same low-saturation families in all four themes, gently mixed with the active theme.
-  val bases=listOf(Color(0xFFDFEDE7),Color(0xFFE5EBF6),Color(0xFFF3E9DD),Color(0xFFE9E4F0))
-  val colors=bases.map { androidx.compose.ui.graphics.lerp(it,p.primarySoft,.16f) }
-  val cards=listOf(
-    CardSpec("阅读天数",AppIcons.Calendar,colors[0],report.days,::unitDays),
-    CardSpec("阅读时长",AppIcons.Clock,colors[1],report.durationMs,::unitDuration),
-    CardSpec(if((report.booksRead as? MetricValue.Known)?.footnote?.contains("仅实体")==true) "实体阅读本数" else "阅读本数",AppIcons.Shelf,colors[2],report.booksRead,::unitBooks),
-    CardSpec(if((report.booksFinished as? MetricValue.Known)?.footnote?.contains("仅实体")==true) "实体读完本数" else "读完本数",AppIcons.Check,colors[3],report.booksFinished,::unitBooks),
-    CardSpec("连续阅读",AppIcons.Stats,colors[0],report.streak,::unitDays),
-    CardSpec("日均阅读",AppIcons.Clock,colors[1],report.dailyAverageMs,::unitDuration))
-  Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
-    cards.chunked(2).forEach { row ->
-      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-        row.forEach { MetricCard(it,Modifier.weight(1f)) }
+  val bases=listOf(Color(0xFFDAEAE1),Color(0xFFDFE8F2),Color(0xFFF0E8DA),Color(0xFFE8E3F0),Color(0xFFE2EDE7),Color(0xFFE5ECF3))
+  val colors=bases.map { if(p.id==com.scarlett.yuedujilu.domain.ThemeId.PINE_GREEN)it else androidx.compose.ui.graphics.lerp(it,p.primarySoft,.22f) }
+  val metrics=com.scarlett.yuedujilu.domain.StatsMetric.entries
+  val values=listOf(report.durationMs,report.days,report.booksRead,
+    MetricValue.Missing(if(source==SourceFilter.PHYSICAL)"当前筛选不含电子书" else "微信读书未提供本期精确书单/本数"),report.streak,report.dailyAverageMs)
+  Column(verticalArrangement=Arrangement.spacedBy(14.dp)) {
+    metrics.chunked(2).forEach { row->
+      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(14.dp)) {
+        row.forEach { metric-> MetricCard(metric,values[metric.ordinal],colors[metric.ordinal],Modifier.weight(1f)){onSelect(metric)} }
       }
     }
   }
 }
-private data class CardSpec(val label:String,val icon:ImageVector,val background:Color,val metric:MetricValue,val format:(Long)->Pair<String,String>)
-
 @Composable
-private fun MetricCard(spec:CardSpec,modifier:Modifier=Modifier) {
-  val p=LocalPalette.current
-  val density=androidx.compose.ui.platform.LocalDensity.current
-  val labelH=with(density){22.sp.toDp()}
-  val valueH=with(density){46.sp.toDp()}
-  val noteH=with(density){40.sp.toDp()}
-  val (value,unit,foot,compare)=present(spec.metric,spec.format)
-  var explain by remember { mutableStateOf(false) }
-  Column(modifier.clip(UiShape.Regular).background(spec.background)
-    .pressClickable { explain=true }.padding(horizontal=16.dp,vertical=14.dp)
-    .then(Modifier.semantics { contentDescription="${spec.label}：$value$unit。${compare?:foot.orEmpty()}" })) {
-    Row(Modifier.fillMaxWidth().height(labelH),verticalAlignment=Alignment.CenterVertically) {
-      Text(spec.label,color=p.textSecondary,fontSize=13.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f),maxLines=1)
-      if(density.fontScale<1.2f) Icon(spec.icon,null,tint=p.primary,modifier=Modifier.size(18.dp))
-    }
-    androidx.compose.ui.layout.Layout(content={
-    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-      androidx.compose.foundation.text.BasicText(value,style=androidx.compose.ui.text.TextStyle(color=p.text,fontSize=30.sp,fontWeight=FontWeight.SemiBold,
-        fontFeatureSettings="tnum",letterSpacing=(-.5).sp),maxLines=1,overflow=TextOverflow.Ellipsis,
-        autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(16.sp,30.sp,1.sp),modifier=Modifier.weight(1f,fill=false).alignByBaseline())
-      if(unit.isNotEmpty()) Text(unit,color=p.text,fontSize=12.sp,modifier=Modifier.padding(start=3.dp).alignByBaseline(),maxLines=1)
-    }
-    },modifier=Modifier.fillMaxWidth().height(valueH)) { measurables,constraints ->
-      val placeable=measurables.single().measure(constraints.copy(minHeight=0))
-      val baseline=placeable[androidx.compose.ui.layout.FirstBaseline]
-      val target=34.sp.roundToPx()
-      layout(constraints.maxWidth,constraints.maxHeight,alignmentLines=mapOf(androidx.compose.ui.layout.FirstBaseline to target)) {
-        placeable.placeRelative(0,target-baseline)
+private fun MetricCard(metric:com.scarlett.yuedujilu.domain.StatsMetric,value:MetricValue,background:Color,modifier:Modifier=Modifier,onClick:()->Unit) {
+  val p=LocalPalette.current;val density=androidx.compose.ui.platform.LocalDensity.current
+  val format=when(metric){com.scarlett.yuedujilu.domain.StatsMetric.DURATION,com.scarlett.yuedujilu.domain.StatsMetric.AVERAGE->::unitDuration;com.scarlett.yuedujilu.domain.StatsMetric.PHYSICAL,com.scarlett.yuedujilu.domain.StatsMetric.EBOOK->::unitBooks;else->::unitDays}
+  val(v,u,foot,compare)=present(value,format)
+  Box(modifier.height((144f+100f*(density.fontScale.coerceAtLeast(1f)-1)).dp).clip(UiShape.Regular).background(background)
+    .pressClickable(onClick=onClick).then(Modifier.semantics {contentDescription="${metric.label}：$v$u"})
+    .testTag("metric-${metric.name}").padding(18.dp)) {
+    Column(Modifier.fillMaxSize()) {
+      Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+        Text(metric.label,color=p.text,fontSize=14.sp,lineHeight=21.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f),maxLines=1)
+        Icon(androidx.compose.ui.res.painterResource(statsIcon(metric)),null,tint=p.primary.copy(alpha=.8f),modifier=Modifier.size(22.dp))
       }
+      Spacer(Modifier.weight(1f))
+      MetricNumber(if(value is MetricValue.Known)compactCardNumber(v) else v,u,if(value is MetricValue.Missing)26 else 36)
     }
-    Box(Modifier.fillMaxWidth().height(noteH),contentAlignment=Alignment.BottomStart) {
-      Text(foot?:compare?:"已确认记录",color=p.textSecondary,fontSize=11.sp,lineHeight=16.sp,minLines=2,maxLines=2,overflow=TextOverflow.Ellipsis)
-    }
+    Icon(AppIcons.ChevronRight,null,tint=p.primary.copy(alpha=.55f),modifier=Modifier.align(Alignment.BottomEnd).size(15.dp))
   }
-  if(explain) androidx.compose.material3.AlertDialog(onDismissRequest={explain=false},title={Text(spec.label)},
-    text={Text("$value $unit\n\n${foot?:"依据已有记录统计"}${compare?.let{"\n$it"}.orEmpty()}")},
-    confirmButton={androidx.compose.material3.TextButton(onClick={explain=false}){Text("知道了")}})
+}
+/** Very large stress/long-lived totals use a readable compact card value; full value stays in semantics/detail. */
+internal fun compactCardNumber(text:String):String {
+ val n=text.toDoubleOrNull()?:return text
+ val (divisor,suffix)=when { n>=100_000_000->100_000_000.0 to "亿";n>=10_000->10_000.0 to "万";else->return text }
+ return java.math.BigDecimal.valueOf(n/divisor).setScale(1,java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()+suffix
+}
+@Composable
+internal fun MetricNumber(value:String,unit:String,size:Int=36,modifier:Modifier=Modifier) {
+ val p=LocalPalette.current;val density=androidx.compose.ui.platform.LocalDensity.current
+ androidx.compose.ui.layout.Layout(content={
+  Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+   androidx.compose.foundation.text.BasicText(value,style=androidx.compose.ui.text.TextStyle(color=p.text,fontSize=size.sp,fontWeight=FontWeight.Medium,fontFeatureSettings="tnum",letterSpacing=(-.5).sp),
+    maxLines=1,overflow=TextOverflow.Ellipsis,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(16.sp,size.sp,1.sp),modifier=Modifier.weight(1f,fill=false).alignByBaseline())
+   if(unit.isNotEmpty())Text(unit,color=p.text,fontSize=12.sp,maxLines=1,modifier=Modifier.padding(start=3.dp,end=10.dp).alignByBaseline())
+  }
+ },modifier=modifier.fillMaxWidth().height(with(density){52.sp.toDp()})) { measurables,c->
+  val child=measurables.single().measure(c.copy(minHeight=0));val baseline=child[androidx.compose.ui.layout.FirstBaseline];val target=38.sp.roundToPx()
+  layout(c.maxWidth,c.maxHeight,alignmentLines=mapOf(androidx.compose.ui.layout.FirstBaseline to target)){child.placeRelative(0,target-baseline)}
+ }
+}
+internal fun statsIcon(metric:com.scarlett.yuedujilu.domain.StatsMetric):Int=when(metric) {
+ com.scarlett.yuedujilu.domain.StatsMetric.DURATION->com.scarlett.yuedujilu.R.drawable.stat_clock
+ com.scarlett.yuedujilu.domain.StatsMetric.DAYS->com.scarlett.yuedujilu.R.drawable.stat_calendar
+ com.scarlett.yuedujilu.domain.StatsMetric.PHYSICAL->com.scarlett.yuedujilu.R.drawable.stat_physical_book
+ com.scarlett.yuedujilu.domain.StatsMetric.EBOOK->com.scarlett.yuedujilu.R.drawable.stat_e_reader
+ com.scarlett.yuedujilu.domain.StatsMetric.STREAK->com.scarlett.yuedujilu.R.drawable.stat_date_chain
+ com.scarlett.yuedujilu.domain.StatsMetric.AVERAGE->com.scarlett.yuedujilu.R.drawable.stat_average_clock
 }
 @Composable
 private fun NotesStrip(metric:MetricValue) {

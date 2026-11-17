@@ -93,6 +93,14 @@ class FullScreenRenderTest {
     cases+=Case("narrow-large-long-title",base.copy(snapshot=base.snapshot.copy(books=listOf(book.copy(title="一本有着非常长非常长的书名与副标题的书：关于阅读、时间和记忆的故事",author="一位名字也非常长的作者与译者")))),360,1.3f)
     ThemeId.entries.forEach { cases+=Case("theme-${it.name}",base.copy(tab=MainTab.STATS),theme=it) }
     cases+=Case("narrow-large-metric-stress",base.copy(tab=MainTab.STATS),360,1.3f,stress=true)
+    StatsMetric.entries.forEach { metric->
+      cases+=Case("detail-${metric.name}",base.copy(tab=MainTab.STATS,route=Route.StatsDetail(metric)))
+      cases+=Case("narrow-large-detail-${metric.name}",base.copy(tab=MainTab.STATS,route=Route.StatsDetail(metric)),360,1.3f)
+    }
+    ThemeId.entries.forEach { cases+=Case("shelf-theme-${it.name}",base,theme=it) }
+    cases+=Case("detail-duration-lower",base.copy(tab=MainTab.STATS,route=Route.StatsDetail(StatsMetric.DURATION)))
+    cases+=Case("detail-average-lower",base.copy(tab=MainTab.STATS,route=Route.StatsDetail(StatsMetric.AVERAGE)))
+    cases+=Case("detail-days-past-week",base.copy(tab=MainTab.STATS,route=Route.StatsDetail(StatsMetric.DAYS),statsPeriod=StatsPeriod.WEEK,statsAnchor=today.minusWeeks(2)))
     var current by mutableStateOf(cases.first())
     rule.setContent {
       val c=current
@@ -113,13 +121,15 @@ class FullScreenRenderTest {
         }
       }
     }
-    val out=File("../ui-audit/screenshots/native").apply { mkdirs() }
+    val out=File("../ui-audit/1.0.4/screenshots/native").apply { mkdirs() }
     val metadata=mutableListOf<String>()
     for(c in cases) {
       if(c.name=="06-timer" || c.name=="21-active-timer-bar" || c.name=="22-narrow-large-timer") repo.startSession(book.id,76,now-25*60_000)
       rule.runOnIdle { current=c }
       rule.waitForIdle()
       if(c.name=="07-end" || c.name=="23-narrow-large-end") { rule.onNodeWithText("结束阅读").performClick();rule.waitForIdle() }
+      if(c.name=="detail-duration-lower")rule.onNodeWithText("来源拆分").performScrollTo()
+      if(c.name=="detail-average-lower")rule.onNodeWithText("阅读日日均 · 另一种口径").performScrollTo()
       val nodes=rule.onAllNodes(isRoot()).fetchSemanticsNodes()
       val view=(nodes.last().root as ViewRootForTest).view
       val widthPx=(c.width*view.resources.displayMetrics.density).toInt().coerceAtMost(view.width)
