@@ -1,5 +1,6 @@
 package com.scarlett.yuedujilu.ui.scan
 
+import com.scarlett.yuedujilu.ui.theme.UiShape
 import android.Manifest
 import android.content.pm.PackageManager
 import android.util.Size
@@ -13,6 +14,14 @@ import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.mlkit.vision.MlKitAnalyzer
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -88,13 +97,14 @@ fun ScanIsbnScreen(vm: AppViewModel) {
     ScreenHeader("扫描 ISBN", onBack = vm::back)
     when {
       granted -> {
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+        Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal=24.dp).clip(UiShape.Regular)) {
           CameraIsbnPreview(
             onIsbn = { code -> vm.lookupIsbn(code) },
             onHint = { hint = it },
           )
+          Box(Modifier.align(Alignment.Center).fillMaxWidth(.82f).height(140.dp).border(1.5f.dp,Color.White.copy(alpha=.8f),UiShape.Regular))
         }
-        Column(Modifier.padding(20.dp)) {
+        Column(Modifier.padding(24.dp).heightIn(max=280.dp).verticalScroll(rememberScrollState())) {
           Text(
             "对准书背或封底上的 ISBN 条码。也可以扫描写有 ISBN 的二维码；普通链接或商品条码不会打开，只会给出提示。",
             color = p.textSecondary,
@@ -114,7 +124,7 @@ fun ScanIsbnScreen(vm: AppViewModel) {
         }
       }
       else -> {
-        Column(Modifier.padding(20.dp)) {
+        Column(Modifier.padding(24.dp).heightIn(max=280.dp).verticalScroll(rememberScrollState())) {
           NoticeCard("扫描书背或封底上的 ISBN 条码需要相机权限，仅在你点扫描时申请。未授权时仍可手输 ISBN 或手动填书。")
           Spacer(Modifier.height(16.dp))
           PrimaryButton("授予相机权限", onClick = { launcher.launch(Manifest.permission.CAMERA) }, modifier = Modifier.fillMaxWidth())

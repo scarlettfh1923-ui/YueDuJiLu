@@ -33,18 +33,18 @@ data class ThemeTokenFile(
 
 @Serializable
 data class RadiiTokens(
-  val container: Int = 24, // 24xl：底栏、搜索、加号
-  val inner: Int = 16,     // 16lg：设置分组、计时条
-  val chip: Int = 12,      // 12md：按钮、选中胶囊、筛选
-  val search: Int = 24,
-  val pill: Int = 12,
-  val sm: Int = 8,
+  val container: Int = 22,
+  val inner: Int = 22,
+  val chip: Int = 22,
+  val search: Int = 22,
+  val pill: Int = 22,
+  val sm: Int = 22,
 )
 
 @Serializable
 data class SpaceTokens(
   val xs: Int = 8,
-  val sm: Int = 12,
+  val sm: Int = 22,
   val md: Int = 20,
   val lg: Int = 24,
 )

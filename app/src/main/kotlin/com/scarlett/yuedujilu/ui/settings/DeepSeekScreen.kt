@@ -38,7 +38,7 @@ import kotlin.math.roundToInt
 fun DeepSeekScreen(vm: AppViewModel, state: AppUiState) {
   val p = LocalPalette.current
   val s = state.snapshot.settings
-  var key by rememberSaveable { mutableStateOf("") }
+  var key by androidx.compose.runtime.remember { mutableStateOf("") }
   var model by rememberSaveable { mutableStateOf(s.deepSeekModel) }
   var base by rememberSaveable { mutableStateOf(s.deepSeekBaseUrl) }
   var thinking by rememberSaveable { mutableStateOf(s.deepSeekDeepThinking) }
@@ -53,14 +53,15 @@ fun DeepSeekScreen(vm: AppViewModel, state: AppUiState) {
     ScreenHeader("DeepSeek 配置", onBack = vm::back)
     Column(
       Modifier
+        .weight(1f)
         .verticalScroll(rememberScrollState())
-        .padding(horizontal = 20.dp)
+        .padding(horizontal = 24.dp)
     ) {
-      NoticeCard("密钥使用系统密钥库加密保存在本机，不会写入备份、导出或日志。请自行填写，应用不会向你索要，也不会在未确定用途前调用接口。")
+      NoticeCard("仅保存配置，不自动调用 AI。密钥加密存于本机，不进入备份或日志。")
       Spacer(Modifier.height(16.dp))
       Text(if (state.hasDeepSeekKey) "已保存密钥（不会回显原文）。要更换请重新输入。" else "尚未填写密钥。", color = p.textSecondary, fontSize = 13.sp)
       Spacer(Modifier.height(16.dp))
-      FormField(key, { key = it }, "API Key")
+      FormField(key, { key = it }, "API Key", secret=true)
       Spacer(Modifier.height(16.dp))
       FormField(base, { base = it }, "接口地址")
       Spacer(Modifier.height(16.dp))

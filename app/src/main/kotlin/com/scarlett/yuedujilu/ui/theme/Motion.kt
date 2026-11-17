@@ -47,7 +47,7 @@ fun Modifier.pressClickable(
   val pressed by interaction.collectIsPressedAsState()
   val scale by animateFloatAsState(
     targetValue = if (pressed && enabled && !motion.weakenMotion) 0.97f else 1f,
-    animationSpec = if (motion.weakenMotion) snap() else tween(durationMillis = 100),
+    animationSpec = if (motion.weakenMotion || pressed) snap() else androidx.compose.animation.core.spring(dampingRatio=1f,stiffness=700f),
     label = "pressScale",
   )
   return this

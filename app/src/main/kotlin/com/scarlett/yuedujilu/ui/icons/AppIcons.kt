@@ -15,11 +15,11 @@ import androidx.compose.ui.unit.dp
  */
 object AppIcons {
   val Shelf = stroke("Shelf") {
-    moveTo(5.5f, 19f); lineTo(5.5f, 8.5f); lineTo(9.5f, 8.5f); lineTo(9.5f, 19f)
-    moveTo(10.5f, 19f); lineTo(10.5f, 5.5f); lineTo(14.5f, 5.5f); lineTo(14.5f, 19f)
-    moveTo(15.5f, 19f); lineTo(15.5f, 9.5f); lineTo(19.5f, 9.5f); lineTo(19.5f, 19f)
-    moveTo(4.5f, 19f); lineTo(19.5f, 19f)
+    moveTo(12f,5f); curveTo(8f,2.8f,5f,3.2f,3f,4.4f); lineTo(3f,19f)
+    curveTo(6f,17.5f,9f,18f,12f,20f); curveTo(15f,18f,18f,17.5f,21f,19f)
+    lineTo(21f,4.4f); curveTo(18f,3.2f,15f,2.8f,12f,5f); lineTo(12f,20f)
   }
+
   val ShelfFilled = filled("ShelfFilled") {
     moveTo(5.25f, 19f); lineTo(5.25f, 8.25f); lineTo(9.25f, 8.25f); lineTo(9.25f, 19f); close()
     moveTo(10.25f, 19f); lineTo(10.25f, 5.25f); lineTo(14.25f, 5.25f); lineTo(14.25f, 19f); close()

@@ -13,8 +13,8 @@ android {
     applicationId = "com.scarlett.yuedujilu"
     minSdk = 26
     targetSdk = 35
-    versionCode = 3
-    versionName = "1.0.2"
+    versionCode = 4
+    versionName = "1.0.3"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -59,7 +59,7 @@ android {
     shaders = false
   }
   testOptions {
-    unitTests.isIncludeAndroidResources = false
+    unitTests.isIncludeAndroidResources = true
   }
   packaging {
     resources {
@@ -96,15 +96,25 @@ dependencies {
   implementation(libs.androidx.camera.view)
   implementation(libs.androidx.camera.mlkit)
   implementation(libs.mlkit.barcode.scanning)
-  implementation(libs.haze)
+  implementation("io.github.kyant0:backdrop:1.0.4")
 
   debugImplementation(libs.androidx.compose.ui.tooling)
   androidTestImplementation(libs.androidx.compose.ui.test.junit4)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   testImplementation(libs.junit)
+  testImplementation("org.robolectric:robolectric:4.16")
+  testImplementation(libs.androidx.compose.ui.test.junit4)
+  testImplementation(libs.androidx.test.core)
+  testImplementation(libs.androidx.test.ext.junit)
   testImplementation(libs.kotlinx.coroutines.test)
   androidTestImplementation(libs.androidx.test.core)
   androidTestImplementation(libs.androidx.test.ext.junit)
   androidTestImplementation(libs.androidx.test.runner)
   androidTestImplementation(libs.androidx.test.espresso.core)
+}
+
+// Backdrop 1.0.4 publishes Java21 bytecode; app compilation/desugaring remains unchanged.
+// Only the host-side Robolectric test JVM needs21.
+tasks.withType<Test>().configureEach {
+  javaLauncher.set(javaToolchains.launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) })
 }

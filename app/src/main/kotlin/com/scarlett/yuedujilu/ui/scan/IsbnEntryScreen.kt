@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,7 +39,7 @@ fun IsbnEntryScreen(vm: AppViewModel, state: AppUiState) {
       .padding(bottom = 20.dp)
   ) {
     ScreenHeader("输入 ISBN", onBack = vm::back)
-    Column(Modifier.padding(horizontal = 20.dp)) {
+    Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
       FormField(
         isbn,
         { isbn = it.filter { ch -> ch.isDigit() || ch.equals('X', true) } },

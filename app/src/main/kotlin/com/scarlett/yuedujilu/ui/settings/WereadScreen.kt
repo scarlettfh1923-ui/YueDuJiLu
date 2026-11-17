@@ -36,7 +36,7 @@ import com.scarlett.yuedujilu.ui.theme.LocalPalette
 fun WereadScreen(vm: AppViewModel, state: AppUiState) {
   val p = LocalPalette.current
   val settings = state.snapshot.settings
-  var key by rememberSaveable { mutableStateOf("") }
+  var key by androidx.compose.runtime.remember { mutableStateOf("") }
   var start by rememberSaveable { mutableStateOf(settings.wereadImportStartDate.orEmpty()) }
   val connected = state.hasWereadKey && WereadImport.parseDate(settings.wereadImportStartDate) != null
   Column(
@@ -49,8 +49,9 @@ fun WereadScreen(vm: AppViewModel, state: AppUiState) {
     ScreenHeader("微信读书", onBack = vm::back)
     Column(
       Modifier
+        .weight(1f)
         .verticalScroll(rememberScrollState())
-        .padding(horizontal = 20.dp)
+        .padding(horizontal = 24.dp)
     ) {
       NoticeCard(
         if (connected) "已保存连接信息。导入起点固定后，每次同步都是从该日到今天，不会按最近 7 天滚动。"

@@ -48,7 +48,7 @@ fun EditBookScreen(vm: AppViewModel, state: AppUiState, route: Route.EditBook) {
       Modifier
         .weight(1f)
         .verticalScroll(rememberScrollState())
-        .padding(horizontal = 20.dp)
+        .padding(horizontal = 24.dp)
     ) {
       FormField(title, { title = it }, "书名")
       Spacer(Modifier.height(16.dp))

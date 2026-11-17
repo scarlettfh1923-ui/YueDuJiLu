@@ -21,3 +21,8 @@ local.properties
 *.aab
 /app/release/
 /app/build/
+
+# Local review evidence, binaries, diagnostics and private signing stay off public source.
+/ui-audit/
+/artifacts/
+*.hprof

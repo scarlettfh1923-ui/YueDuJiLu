@@ -1,5 +1,6 @@
 package com.scarlett.yuedujilu.ui.stats
 
+import com.scarlett.yuedujilu.ui.theme.UiShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +31,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -90,7 +93,7 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
       .fillMaxSize()
       .statusBarsPadding()
       .verticalScroll(rememberScrollState())
-      .padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = MainBottomSpace.dp)
+      .padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = MainBottomSpace.dp)
   ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
       OverviewTabs(state.statsMode, vm::setStatsMode, Modifier.weight(1f))
@@ -104,11 +107,12 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
     }
     Spacer(Modifier.height(14.dp))
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-      PeriodCapsules(
+      if(state.statsMode==StatsMode.OVERVIEW) PeriodCapsules(
         selected = state.statsPeriod,
         onSelect = vm::setPeriod,
         modifier = Modifier.weight(1f),
       )
+      else Text("阅读足迹",color=p.textSecondary,fontSize=13.sp,modifier=Modifier.weight(1f))
       Spacer(Modifier.width(4.dp))
       SourceSelector(
         label = when (state.statsSource) {
@@ -133,7 +137,7 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
       )
     }
     Spacer(Modifier.height(8.dp))
-    PeriodNavigator(
+    if(state.statsMode==StatsMode.OVERVIEW) PeriodNavigator(
       period = state.statsPeriod,
       label = report.periodLabel,
       canGoForward = report.canGoForward,
@@ -144,7 +148,7 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
     )
     Spacer(Modifier.height(18.dp))
     if (state.statsMode == StatsMode.OVERVIEW) {
-      Text("数据总览", color = p.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.3).sp)
+      Text(when(state.statsSource){SourceFilter.ALL->"实体 + 微信 · 已确认记录";SourceFilter.PHYSICAL->"实体书 · 本机记录";SourceFilter.WEREAD->"微信读书 · 同步记录"}, color=p.textSecondary,fontSize=12.sp)
       if (state.wereadBusy) {
         Spacer(Modifier.height(6.dp))
         Text(state.wereadProgress ?: "正在同步微信读书…", color = p.textSecondary, fontSize = 12.sp)
@@ -160,12 +164,8 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
         Text(it, color = p.textSecondary, fontSize = 12.sp, lineHeight = 18.sp)
       }
     } else {
-      CalendarBoard(
-        month = state.calendarMonth,
-        marked = report.markedDays,
-        today = today,
-        onShift = vm::shiftMonth,
-      )
+      ReadingCalendarPanel(vm,state,hash,today)
+
     }
   }
 }
@@ -192,7 +192,7 @@ private fun OverviewTab(text: String, selected: Boolean, onClick: () -> Unit) {
     Text(
       text,
       color = if (selected) p.text else p.textTertiary,
-      fontSize = if (selected) 22.sp else 18.sp,
+      fontSize = 22.sp,
       fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
     )
     Spacer(Modifier.height(6.dp))
@@ -200,7 +200,7 @@ private fun OverviewTab(text: String, selected: Boolean, onClick: () -> Unit) {
       Modifier
         .width(22.dp)
         .height(3.dp)
-        .clip(RoundedCornerShape(2.dp))
+        .clip(UiShape.Capsule)
         .background(if (selected) p.primary else Color.Transparent),
     )
   }
@@ -209,7 +209,7 @@ private fun OverviewTab(text: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 private fun PeriodCapsules(selected: StatsPeriod, onSelect: (StatsPeriod) -> Unit, modifier: Modifier = Modifier) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(20.dp)
+  val shape = UiShape.Capsule
   Row(
     modifier
       .clip(shape)
@@ -227,8 +227,8 @@ private fun PeriodCapsules(selected: StatsPeriod, onSelect: (StatsPeriod) -> Uni
       Box(
         Modifier
           .weight(1f)
-          .defaultMinSize(minHeight = 36.dp)
-          .clip(RoundedCornerShape(17.dp))
+          .defaultMinSize(minHeight = 42.dp)
+          .clip(UiShape.Capsule)
           .background(if (on) p.surfaceRaised else Color.Transparent)
           .pressClickable { onSelect(period) },
         contentAlignment = Alignment.Center,
@@ -320,112 +320,82 @@ private fun periodChoices(period: StatsPeriod, today: LocalDate, anchor: LocalDa
 }
 
 @Composable
-private fun OverviewCards(report: com.scarlett.yuedujilu.domain.OverviewReport) {
-  val p = LocalPalette.current
-  val rows = listOf(
-    listOf(
-      CardSpec("阅读天数", AppIcons.Stats, p.primary, report.days, ::unitDays),
-      CardSpec("阅读时长", AppIcons.Clock, p.success, report.durationMs, ::unitDuration),
-    ),
-    listOf(
-      CardSpec("阅读本数", AppIcons.Shelf, p.primary.copy(alpha = 0.85f), report.booksRead, ::unitBooks),
-      CardSpec("读完本数", AppIcons.Check, p.success, report.booksFinished, ::unitBooks),
-    ),
-    listOf(
-      CardSpec("连续阅读", AppIcons.Calendar, p.primary, report.streak, ::unitDays),
-      CardSpec("日均阅读时长", AppIcons.Spark, p.success, report.dailyAverageMs, ::unitDuration),
-    ),
-  )
-  Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-    rows.forEach { row ->
-      Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        row.forEach { spec ->
-          MetricCard(spec, Modifier.weight(1f))
-        }
+internal fun OverviewCards(report: com.scarlett.yuedujilu.domain.OverviewReport) {
+  val p=LocalPalette.current
+  // Same low-saturation families in all four themes, gently mixed with the active theme.
+  val bases=listOf(Color(0xFFDFEDE7),Color(0xFFE5EBF6),Color(0xFFF3E9DD),Color(0xFFE9E4F0))
+  val colors=bases.map { androidx.compose.ui.graphics.lerp(it,p.primarySoft,.16f) }
+  val cards=listOf(
+    CardSpec("阅读天数",AppIcons.Calendar,colors[0],report.days,::unitDays),
+    CardSpec("阅读时长",AppIcons.Clock,colors[1],report.durationMs,::unitDuration),
+    CardSpec(if((report.booksRead as? MetricValue.Known)?.footnote?.contains("仅实体")==true) "实体阅读本数" else "阅读本数",AppIcons.Shelf,colors[2],report.booksRead,::unitBooks),
+    CardSpec(if((report.booksFinished as? MetricValue.Known)?.footnote?.contains("仅实体")==true) "实体读完本数" else "读完本数",AppIcons.Check,colors[3],report.booksFinished,::unitBooks),
+    CardSpec("连续阅读",AppIcons.Stats,colors[0],report.streak,::unitDays),
+    CardSpec("日均阅读",AppIcons.Clock,colors[1],report.dailyAverageMs,::unitDuration))
+  Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+    cards.chunked(2).forEach { row ->
+      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+        row.forEach { MetricCard(it,Modifier.weight(1f)) }
       }
     }
   }
 }
-
-private data class CardSpec(
-  val label: String,
-  val icon: ImageVector,
-  val tint: Color,
-  val metric: MetricValue,
-  val format: (Long) -> Pair<String, String>,
-)
+private data class CardSpec(val label:String,val icon:ImageVector,val background:Color,val metric:MetricValue,val format:(Long)->Pair<String,String>)
 
 @Composable
-private fun MetricCard(spec: CardSpec, modifier: Modifier = Modifier) {
-  val p = LocalPalette.current
-  val shape = RoundedCornerShape(24.dp)
-  val (value, unit, foot, compare) = present(spec.metric, spec.format)
-  Column(
-    modifier
-      .clip(shape)
-      .background(p.surfaceMuted)
-      .defaultMinSize(minHeight = 124.dp)
-      .padding(horizontal = 14.dp, vertical = 14.dp)
-  ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-      Text(spec.label, color = p.textSecondary, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-      Icon(spec.icon, contentDescription = null, tint = spec.tint, modifier = Modifier.size(20.dp))
+private fun MetricCard(spec:CardSpec,modifier:Modifier=Modifier) {
+  val p=LocalPalette.current
+  val density=androidx.compose.ui.platform.LocalDensity.current
+  val labelH=with(density){22.sp.toDp()}
+  val valueH=with(density){46.sp.toDp()}
+  val noteH=with(density){40.sp.toDp()}
+  val (value,unit,foot,compare)=present(spec.metric,spec.format)
+  var explain by remember { mutableStateOf(false) }
+  Column(modifier.clip(UiShape.Regular).background(spec.background)
+    .pressClickable { explain=true }.padding(horizontal=16.dp,vertical=14.dp)
+    .then(Modifier.semantics { contentDescription="${spec.label}：$value$unit。${compare?:foot.orEmpty()}" })) {
+    Row(Modifier.fillMaxWidth().height(labelH),verticalAlignment=Alignment.CenterVertically) {
+      Text(spec.label,color=p.textSecondary,fontSize=13.sp,fontWeight=FontWeight.Medium,modifier=Modifier.weight(1f),maxLines=1)
+      if(density.fontScale<1.2f) Icon(spec.icon,null,tint=p.primary,modifier=Modifier.size(18.dp))
     }
-    Spacer(Modifier.height(10.dp))
-    Row(verticalAlignment = Alignment.Bottom) {
-      Text(
-        value,
-        color = p.text,
-        fontSize = if (value.length > 6) 22.sp else 28.sp,
-        fontWeight = FontWeight.SemiBold,
-        letterSpacing = (-0.4).sp,
-        maxLines = 2,
-        lineHeight = 30.sp,
-        modifier = Modifier.weight(1f, fill = false),
-      )
-      if (unit.isNotEmpty()) {
-        Spacer(Modifier.width(4.dp))
-        Text(unit, color = p.text, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 3.dp))
+    androidx.compose.ui.layout.Layout(content={
+    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+      androidx.compose.foundation.text.BasicText(value,style=androidx.compose.ui.text.TextStyle(color=p.text,fontSize=30.sp,fontWeight=FontWeight.SemiBold,
+        fontFeatureSettings="tnum",letterSpacing=(-.5).sp),maxLines=1,overflow=TextOverflow.Ellipsis,
+        autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(16.sp,30.sp,1.sp),modifier=Modifier.weight(1f,fill=false).alignByBaseline())
+      if(unit.isNotEmpty()) Text(unit,color=p.text,fontSize=12.sp,modifier=Modifier.padding(start=3.dp).alignByBaseline(),maxLines=1)
+    }
+    },modifier=Modifier.fillMaxWidth().height(valueH)) { measurables,constraints ->
+      val placeable=measurables.single().measure(constraints.copy(minHeight=0))
+      val baseline=placeable[androidx.compose.ui.layout.FirstBaseline]
+      val target=34.sp.roundToPx()
+      layout(constraints.maxWidth,constraints.maxHeight,alignmentLines=mapOf(androidx.compose.ui.layout.FirstBaseline to target)) {
+        placeable.placeRelative(0,target-baseline)
       }
     }
-    Spacer(Modifier.height(8.dp))
-    Text(
-      compare ?: foot ?: " ",
-      color = p.textTertiary,
-      fontSize = 11.sp,
-      lineHeight = 15.sp,
-      maxLines = 2,
-      overflow = TextOverflow.Ellipsis,
-    )
+    Box(Modifier.fillMaxWidth().height(noteH),contentAlignment=Alignment.BottomStart) {
+      Text(foot?:compare?:"已确认记录",color=p.textSecondary,fontSize=11.sp,lineHeight=16.sp,minLines=2,maxLines=2,overflow=TextOverflow.Ellipsis)
+    }
   }
+  if(explain) androidx.compose.material3.AlertDialog(onDismissRequest={explain=false},title={Text(spec.label)},
+    text={Text("$value $unit\n\n${foot?:"依据已有记录统计"}${compare?.let{"\n$it"}.orEmpty()}")},
+    confirmButton={androidx.compose.material3.TextButton(onClick={explain=false}){Text("知道了")}})
 }
-
 @Composable
-private fun NotesStrip(metric: MetricValue) {
-  val p = LocalPalette.current
-  val shape = RoundedCornerShape(24.dp)
-  val (value, unit, foot, compare) = present(metric, ::unitNotes)
-  Column(
-    Modifier
-      .fillMaxWidth()
-      .clip(shape)
-      .background(p.surfaceMuted)
-      .padding(horizontal = 16.dp, vertical = 14.dp)
-  ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-      Text("新增笔记", color = p.textSecondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
-      Icon(AppIcons.Edit, contentDescription = null, tint = p.primary, modifier = Modifier.size(20.dp))
-    }
-    Spacer(Modifier.height(8.dp))
-    Row(verticalAlignment = Alignment.Bottom) {
-      Text(value, color = p.text, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.3).sp)
-      if (unit.isNotEmpty()) {
-        Spacer(Modifier.width(4.dp))
-        Text(unit, color = p.text, fontSize = 14.sp, modifier = Modifier.padding(bottom = 2.dp))
+private fun NotesStrip(metric:MetricValue) {
+  val p=LocalPalette.current
+  val (value,unit,foot,compare)=present(metric,::unitNotes)
+  Row(Modifier.fillMaxWidth().clip(UiShape.Regular).background(p.surface).padding(20.dp),verticalAlignment=Alignment.CenterVertically) {
+    Icon(AppIcons.Edit,null,tint=p.primary,modifier=Modifier.size(23.dp))
+    Spacer(Modifier.width(14.dp))
+    Column(Modifier.weight(1f)) {
+      Text("新增笔记",color=p.textSecondary,fontSize=12.sp)
+      Row(verticalAlignment=Alignment.CenterVertically) {
+        Text(value,color=p.text,fontSize=24.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.alignByBaseline())
+        Text(unit,color=p.text,fontSize=14.sp,modifier=Modifier.alignByBaseline())
       }
+      if(foot!=null) Text(foot,color=p.textSecondary,fontSize=11.sp,lineHeight=16.sp)
     }
-    Spacer(Modifier.height(6.dp))
-    Text(compare ?: foot ?: "口径为微信划线与想法，书签无逐条日期，不计入。", color = p.textTertiary, fontSize = 11.sp, lineHeight = 16.sp)
   }
 }
 
@@ -444,103 +414,6 @@ private fun present(metric: MetricValue, format: (Long) -> Pair<String, String>)
 private fun unitDays(v: Long) = v.toString() to "天"
 private fun unitBooks(v: Long) = v.toString() to "本"
 private fun unitNotes(v: Long) = v.toString() to "条"
-private fun unitDuration(ms: Long): Pair<String, String> {
-  val totalMin = (ms / 60_000L).coerceAtLeast(0L)
-  val h = totalMin / 60
-  val m = totalMin % 60
-  return when {
-    h > 0 && m > 0 -> "${h}小时${m}分" to ""
-    h > 0 -> h.toString() to "小时"
-    else -> m.toString() to "分"
-  }
-}
-
-@Composable
-private fun CalendarBoard(
-  month: YearMonth,
-  marked: Set<LocalDate>,
-  today: LocalDate,
-  onShift: (Long) -> Unit,
-) {
-  val p = LocalPalette.current
-  SoftCard(elevated = true, radius = 24) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-      Box(
-        Modifier
-          .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-          .pressClickable { onShift(-1) },
-        contentAlignment = Alignment.Center,
-      ) {
-        Icon(AppIcons.ChevronLeft, "上个月", tint = p.text, modifier = Modifier.size(22.dp))
-      }
-      Text(yearMonthLabel(month), color = p.text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-      val canFwd = month.isBefore(YearMonth.from(today))
-      Box(
-        Modifier
-          .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-          .pressClickable(enabled = canFwd) { onShift(1) },
-        contentAlignment = Alignment.Center,
-      ) {
-        Icon(
-          AppIcons.ChevronRight,
-          "下个月",
-          tint = if (month.isBefore(YearMonth.from(today))) p.text else p.textTertiary.copy(alpha = 0.4f),
-          modifier = Modifier.size(22.dp),
-        )
-      }
-    }
-    Spacer(Modifier.height(8.dp))
-    Row(Modifier.fillMaxWidth()) {
-      listOf("一", "二", "三", "四", "五", "六", "日").forEach {
-        Text(it, color = p.textTertiary, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
-      }
-    }
-    Spacer(Modifier.height(8.dp))
-    val first = month.atDay(1)
-    val start = first.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    var day = start
-    repeat(6) {
-      Row(Modifier.fillMaxWidth()) {
-        repeat(7) {
-          val inMonth = YearMonth.from(day) == month
-          val has = marked.contains(day)
-          val isToday = day == today
-          Box(
-            Modifier
-              .weight(1f)
-              .aspectRatio(1f)
-              .padding(3.dp)
-              .clip(CircleShape)
-              .background(
-                when {
-                  has && inMonth -> p.primary
-                  isToday && inMonth -> p.primarySoft
-                  else -> Color.Transparent
-                }
-              ),
-            contentAlignment = Alignment.Center,
-          ) {
-            Text(
-              day.dayOfMonth.toString(),
-              color = when {
-                !inMonth -> p.textTertiary.copy(alpha = 0.4f)
-                has -> p.onPrimary
-                else -> p.text
-              },
-              fontSize = 13.sp,
-              fontWeight = if (has || isToday) FontWeight.SemiBold else FontWeight.Normal,
-            )
-          }
-          day = day.plusDays(1)
-        }
-      }
-    }
-    Spacer(Modifier.height(8.dp))
-    Text(
-      "有阅读记录的日期会以主题色点出。实体与微信按自然日合并；微信缺失的日期不会标成已读。时长按上海时区自然日切开。",
-      color = p.textSecondary,
-      fontSize = 12.sp,
-      lineHeight = 18.sp,
-    )
-  }
-}
+private fun unitDuration(ms: Long): Pair<String,String> = if(ms>=3_600_000L) {
+  String.format(java.util.Locale.ROOT,"%.1f",ms/3_600_000.0) to "小时"
+} else (ms/60_000L).coerceAtLeast(0L).toString() to "分"

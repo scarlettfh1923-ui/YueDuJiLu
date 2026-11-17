@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Text
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -28,10 +30,12 @@ fun AiEntryScreen(vm: AppViewModel) {
       .padding(bottom = 16.dp)
   ) {
     ScreenHeader("AI 入口", onBack = vm::back)
-    Column(Modifier.padding(horizontal = 20.dp)) {
+    Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
       NoticeCard("用途尚未确定，所以这里不会打开对话、推荐或把阅读记录发送到任何模型。DeepSeek 的密钥可以先在上一页保存，但当前版本不会调用接口。")
       Spacer(Modifier.height(16.dp))
       Text("等你确定要它做什么之后，再在这个入口接上具体功能。", color = p.textSecondary, fontSize = 14.sp, lineHeight = 22.sp)
+      Spacer(Modifier.height(24.dp))
+      com.scarlett.yuedujilu.ui.common.SettingsRow("DeepSeek 配置","仅保存模型与密钥，不自动发起请求",com.scarlett.yuedujilu.ui.icons.AppIcons.Key,{vm.go(com.scarlett.yuedujilu.Route.DeepSeek)})
     }
   }
 }

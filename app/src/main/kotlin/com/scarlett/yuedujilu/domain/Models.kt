@@ -13,8 +13,8 @@ enum class SessionOrigin { TIMER, MANUAL }
 
 @Serializable
 enum class ThemeId {
-  MIST_PLUM,   // 雾紫 + 深梅（默认）
-  PINE_GREEN,  // 青绿
+  MIST_PLUM,   // 雾紫（保留既有选择）
+  PINE_GREEN,  // 青瓷青绿（新安装默认）
   SLATE_BLUE,  // 灰蓝
   WARM_IVORY;  // 暖白
 

@@ -84,11 +84,11 @@ fun BookDetailScreen(vm: AppViewModel, state: AppUiState, bookId: String) {
       Modifier
         .weight(1f)
         .verticalScroll(rememberScrollState())
-        .padding(horizontal = 20.dp, vertical = 8.dp)
+        .padding(horizontal = 24.dp, vertical = 8.dp)
     ) {
-      SoftCard(elevated = true) {
+      Column(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-          CoverPlate(book, width = 72.dp)
+          CoverPlate(book, width = 100.dp)
           Spacer(Modifier.width(16.dp))
           Column(Modifier.weight(1f)) {
             Text(book.title, color = p.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
@@ -113,11 +113,11 @@ fun BookDetailScreen(vm: AppViewModel, state: AppUiState, bookId: String) {
           PrimaryButton(action, onClick = { vm.startOrOpenTimer(book) }, modifier = Modifier.fillMaxWidth())
           Spacer(Modifier.height(10.dp))
           Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            QuietButton("补录记录", onClick = { vm.go(Route.Backfill(book.id)) })
+            QuietButton("补录记录", onClick = { vm.go(Route.Backfill(book.id)) },modifier=Modifier.weight(1f))
             if (book.status != BookStatus.FINISHED) {
-              QuietButton("标记读完", onClick = { vm.markFinished(book.id) })
+              QuietButton("标记读完", onClick = { vm.markFinished(book.id) },modifier=Modifier.weight(1f))
             } else {
-              QuietButton("撤销读完", onClick = { vm.undoFinish(book.id) })
+              QuietButton("撤销读完", onClick = { vm.undoFinish(book.id) },modifier=Modifier.weight(1f))
             }
           }
           if (book.status == BookStatus.FINISHED) {
@@ -132,7 +132,7 @@ fun BookDetailScreen(vm: AppViewModel, state: AppUiState, bookId: String) {
             QuietButton("取消弃读", onClick = { vm.setAbandoned(book.id, false) })
           }
           Text(
-            "500 页的书读到 475 页也可以标记读完，进度仍保留为 475/500。",
+            "读完由你决定，不强制翻到最后一页，保留真实阅读进度。",
             color = p.textTertiary,
             fontSize = 12.sp,
             modifier = Modifier.padding(top = 10.dp),
@@ -147,7 +147,7 @@ fun BookDetailScreen(vm: AppViewModel, state: AppUiState, bookId: String) {
         SoftCard { Text("还没有阅读记录。开始计时或补录一次即可。", color = p.textSecondary, fontSize = 14.sp) }
       } else {
         sessions.forEach { s ->
-          SoftCard(radius = 16, onClick = {
+          SoftCard(onClick = {
             if (s.endedAtEpochMs != null) vm.go(Route.Backfill(book.id, s.id))
             else vm.go(Route.EndSession(book.id))
           }) {

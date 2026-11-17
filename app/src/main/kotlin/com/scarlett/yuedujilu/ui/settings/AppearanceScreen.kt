@@ -1,5 +1,6 @@
 package com.scarlett.yuedujilu.ui.settings
 
+import com.scarlett.yuedujilu.ui.theme.UiShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -53,19 +54,19 @@ fun AppearanceScreen(vm: AppViewModel, state: AppUiState) {
     Column(
       Modifier
         .verticalScroll(rememberScrollState())
-        .padding(horizontal = 20.dp, vertical = 8.dp)
+        .padding(horizontal = 24.dp, vertical = 8.dp)
     ) {
       Text("选择一套底色。背景、卡片、文字、图标、按钮和系统栏会一起切换，并在下次打开时保持。", color = p.textSecondary, fontSize = 13.sp, lineHeight = 20.sp)
       Spacer(Modifier.height(16.dp))
-      ThemeId.entries.forEach { id ->
+      listOf(ThemeId.PINE_GREEN,ThemeId.MIST_PLUM,ThemeId.SLATE_BLUE,ThemeId.WARM_IVORY).forEach { id ->
         val pal = catalog.palette(id)
         val selected = state.snapshot.settings.themeId == id
-        val shape = RoundedCornerShape(LocalRadii.current.container.dp)
+        val shape = UiShape.Regular
         Row(
           Modifier
             .fillMaxWidth()
             .padding(bottom = 12.dp)
-            .shadow(if (selected) 14.dp else 6.dp, shape, ambientColor = pal.shadow, spotColor = pal.shadow)
+            .border(if(selected) 1.5f.dp else 0.dp, if(selected) pal.primary else androidx.compose.ui.graphics.Color.Transparent, shape)
             .clip(shape)
             .background(p.surface)
             .pressClickable { vm.setTheme(id) }
@@ -81,7 +82,7 @@ fun AppearanceScreen(vm: AppViewModel, state: AppUiState) {
           )
           Spacer(Modifier.width(14.dp))
           Column(Modifier.weight(1f)) {
-            Text(id.displayName, color = p.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(if(id==ThemeId.PINE_GREEN) "青瓷 · 青绿" else id.displayName, color = p.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             Text(catalog.subtitle(id), color = p.textSecondary, fontSize = 12.sp)
           }
           if (selected) {

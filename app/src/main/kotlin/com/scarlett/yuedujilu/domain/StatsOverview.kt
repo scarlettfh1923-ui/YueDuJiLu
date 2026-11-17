@@ -215,7 +215,10 @@ object StatsOverview {
     }
 
     val wereadMs = mutableMapOf<LocalDate, Long>()
-    var wereadUnknownInRange = false
+    var wereadUnknownInRange = includeWeread && wereadConnected && (
+      (start?.isBefore(wereadStart!!) == true) || end.isAfter(wereadEnd!!) ||
+        (start==null && physicalMs.keys.any { it.isBefore(wereadStart) })
+    )
     if (includeWeread && wereadConnected) {
       val byDate = wereadDays.asSequence()
         .filter { it.accountHash == hash }
@@ -226,7 +229,7 @@ object StatsOverview {
       if (!cursor.isAfter(last)) {
         while (!cursor.isAfter(last)) {
           val recs = byDate[cursor].orEmpty()
-          val complete = recs.filter { it.durationComplete }
+          val complete = listOfNotNull(recs.maxByOrNull { it.updatedAtEpochMs }).filter { it.durationComplete && it.durationSec!=null && it.durationSec>=0L }
           if (complete.isEmpty()) {
             wereadUnknownInRange = true
           } else {
@@ -240,6 +243,14 @@ object StatsOverview {
     val unionDays = sortedSetOf<LocalDate>()
     physicalMs.filter { it.value > 0 }.keys.forEach { unionDays += it }
     wereadMs.filter { it.value > 0 }.keys.forEach { unionDays += it }
+    // A positive partial day proves reading happened, even when its full duration is unknown.
+    // Calendar and day-count must agree; incomplete duration still cannot become a complete total.
+    if(includeWeread && wereadConnected) wereadDays.filter {
+      it.accountHash==hash && (it.durationSec?:0L)>0L
+    }.mapNotNull { WereadImport.parseDate(it.date) }.filter {
+      !it.isAfter(end) && (start==null || !it.isBefore(start)) &&
+        !it.isBefore(wereadStart) && !it.isAfter(wereadEnd)
+    }.forEach { unionDays += it }
 
     var duration = 0L
     val dayIterStart = start ?: run {
@@ -535,8 +546,8 @@ object StatsOverview {
       days += ReadingMath.readingDaysInMonth(sessions, yearMonth, nowEpochMs, zone)
     }
     if (includeWeread && !hash.isNullOrBlank() && wereadStart != null && wereadEnd != null) {
-      for (rec in wereadDays) {
-        if (rec.accountHash != hash || !rec.durationComplete) continue
+      for (rec in wereadDays.groupBy { it.accountHash to it.date }.values.mapNotNull { it.maxByOrNull { r -> r.updatedAtEpochMs } }) {
+        if (rec.accountHash != hash) continue
         val date = WereadImport.parseDate(rec.date) ?: continue
         if (YearMonth.from(date) != yearMonth) continue
         if (date.isBefore(wereadStart) || date.isAfter(wereadEnd)) continue

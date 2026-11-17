@@ -49,21 +49,21 @@ object Palettes {
   )
   val PineGreen = YueDuPalette(
     id = ThemeId.PINE_GREEN,
-    background = Color(0xFFEEF3F1),
-    surface = Color(0xFFF7FBFA),
-    surfaceMuted = Color(0xFFDFE8E6),
-    primary = Color(0xFF1B5A50),
+    background = Color(0xFFF3F7F5),
+    surface = Color(0xFFFFFFFF),
+    surfaceMuted = Color(0xFFE9F0EC),
+    primary = Color(0xFF246C60),
     onPrimary = Color(0xFFFFFFFF),
-    primarySoft = Color(0xFFE4EBEA),
-    text = Color(0xFF141C1A),
-    textSecondary = Color(0xFF4C5B56),
-    textTertiary = Color(0xFF4C5B56),
-    stroke = Color(0xFFC3CEC9),
+    primarySoft = Color(0xFFDFEDE7),
+    text = Color(0xFF193C36),
+    textSecondary = Color(0xFF526C63),
+    textTertiary = Color(0xFF526C63),
+    stroke = Color(0xFFD7E3DD),
     danger = Color(0xFF9B2C3B),
-    success = Color(0xFF1B5A50),
+    success = Color(0xFF246C60),
     shadow = Color(0x14000000),
     surfaceRaised = Color(0xFFFFFFFF),
-    track = Color(0xFFDFE8E6),
+    track = Color(0xFFE9F0EC),
     tabBar = Color(0xFFFEFEFE),
     tabBarAlpha = 0.92f,
   )
@@ -118,25 +118,25 @@ object Palettes {
   )
 
   val defaultSubtitles: Map<ThemeId, String> = mapOf(
-    ThemeId.MIST_PLUM to "默认 · 雾紫",
-    ThemeId.PINE_GREEN to "青绿",
+    ThemeId.MIST_PLUM to "雾紫",
+    ThemeId.PINE_GREEN to "青瓷 · 青绿",
     ThemeId.SLATE_BLUE to "灰蓝",
     ThemeId.WARM_IVORY to "暖白",
   )
 }
 
 object Radii {
-  val container = 24
-  val inner = 16
-  val chip = 12
-  val search = 24
-  val pill = 12
-  val sm = 8
+  val container = 22
+  val inner = 22
+  val chip = 22
+  val search = 22
+  val pill = 22
+  val sm = 22
 }
 
 object Spaces {
   val xs = 8
-  val sm = 12
+  val sm = 22
   val md = 20
   val lg = 24
 }

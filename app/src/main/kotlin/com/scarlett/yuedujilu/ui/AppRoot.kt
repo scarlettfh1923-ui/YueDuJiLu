@@ -1,5 +1,6 @@
 package com.scarlett.yuedujilu.ui
 
+import com.scarlett.yuedujilu.ui.theme.UiShape
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -72,16 +73,17 @@ import com.scarlett.yuedujilu.ui.theme.LocalPalette
 import com.scarlett.yuedujilu.ui.theme.LocalRadii
 import com.scarlett.yuedujilu.ui.theme.GlassTreatment
 import com.scarlett.yuedujilu.ui.theme.LocalGlassTreatment
-import com.scarlett.yuedujilu.ui.theme.LocalHazeState
+import com.scarlett.yuedujilu.ui.theme.LocalBackdrop
 import com.scarlett.yuedujilu.ui.theme.glassSurface
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.scarlett.yuedujilu.ui.theme.pressClickable
 
 @Composable
 fun AppRoot(vm: AppViewModel, state: AppUiState) {
   val p = LocalPalette.current
   val snack = remember { SnackbarHostState() }
+  val routeState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
   LaunchedEffect(state.message) {
     val msg = state.message ?: return@LaunchedEffect
     snack.showSnackbar(msg.text)
@@ -94,6 +96,7 @@ fun AppRoot(vm: AppViewModel, state: AppUiState) {
       .fillMaxSize()
       .background(p.background)
   ) {
+    routeState.SaveableStateProvider(state.route.toString()) {
     when (val route = state.route) {
       Route.Main -> MainTabs(vm, state)
       is Route.BookDetail -> BookDetailScreen(vm, state, route.bookId)
@@ -110,6 +113,7 @@ fun AppRoot(vm: AppViewModel, state: AppUiState) {
       Route.Backup -> BackupScreen(vm)
       Route.Export -> ExportScreen(vm)
     }
+    }
     SnackbarHost(
       snack,
       modifier = Modifier
@@ -125,18 +129,24 @@ private fun MainTabs(vm: AppViewModel, state: AppUiState) {
   val active = vm.active()
   val activeBook = active?.let { s -> state.snapshot.books.find { it.id == s.bookId } }
   val treatment = LocalGlassTreatment.current
-  val hazeState = rememberHazeState()
-  CompositionLocalProvider(LocalHazeState provides hazeState) {
+  val hazeState = rememberLayerBackdrop()
+  val tabState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+  CompositionLocalProvider(LocalBackdrop provides hazeState) {
   Box(Modifier.fillMaxSize()) {
     Box(
       Modifier
         .fillMaxSize()
-        .then(if (treatment == GlassTreatment.BLUR) Modifier.hazeSource(state = hazeState) else Modifier)
+        .then(if (treatment == GlassTreatment.BLUR) Modifier.layerBackdrop(hazeState) else Modifier)
+        .background(LocalPalette.current.background)
     ) {
-      when (state.tab) {
-        MainTab.SHELF -> ShelfScreen(vm, state)
-        MainTab.STATS -> StatsScreen(vm, state)
-        MainTab.MINE -> MineScreen(vm, state)
+      // Commit exactly one page. Crossfade superimposed outgoing/incoming text.
+      // The independent liquid-nav indicator and press feedback still animate.
+      tabState.SaveableStateProvider(state.tab.name) {
+        when (state.tab) {
+          MainTab.SHELF -> ShelfScreen(vm, state)
+          MainTab.STATS -> StatsScreen(vm, state)
+          MainTab.MINE -> MineScreen(vm, state)
+        }
       }
     }
     Column(
@@ -144,7 +154,7 @@ private fun MainTabs(vm: AppViewModel, state: AppUiState) {
         .align(Alignment.BottomCenter)
         .fillMaxWidth()
         .navigationBarsPadding()
-        .padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
+        .padding(start = 24.dp, end = 24.dp, bottom = 12.dp),
       horizontalAlignment = Alignment.CenterHorizontally,
     ) {
       val motion = LocalMotion.current
@@ -166,7 +176,7 @@ private fun MainTabs(vm: AppViewModel, state: AppUiState) {
           }
         }
       }
-      TabIsland(selected = state.tab, onSelect = vm::setTab)
+      LiquidTabBar(selected = state.tab, onSelect = vm::setTab)
     }
   }
   }
@@ -181,27 +191,25 @@ private fun TimerBar(
   onOpen: () -> Unit,
 ) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(LocalRadii.current.inner.dp)
+  val shape = UiShape.Capsule
   Row(
     Modifier
       .fillMaxWidth()
-      .shadow(8.dp, shape, ambientColor = p.shadow, spotColor = p.shadow)
-      .clip(shape)
-      .background(p.surfaceRaised)
+      .glassSurface(shape)
       .pressClickable(onClick = onOpen)
       .padding(horizontal = 16.dp, vertical = 12.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Icon(AppIcons.Clock, null, tint = p.primary, modifier = Modifier.size(20.dp))
+    Icon(AppIcons.Clock, null, tint = p.text, modifier = Modifier.size(20.dp))
     Spacer(Modifier.width(10.dp))
     Column(Modifier.weight(1f)) {
       Text(title, color = p.text, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1)
-      Text(elapsed, color = p.primary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+      Text(elapsed, color = p.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
     Box(
       Modifier
         .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-        .clip(RoundedCornerShape(LocalRadii.current.chip.dp))
+        .clip(UiShape.Capsule)
         .background(p.primarySoft)
         .pressClickable(onClick = onToggle)
         .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -216,54 +224,4 @@ private fun TimerBar(
   }
 }
 
-@Composable
-private fun TabIsland(selected: MainTab, onSelect: (MainTab) -> Unit) {
-  val p = LocalPalette.current
-  val radii = LocalRadii.current
-  val shape = RoundedCornerShape(radii.container.dp)
-  Row(
-    Modifier
-      .fillMaxWidth()
-      .glassSurface(shape)
-      .padding(TabBarSpec.INNER_PADDING_DP.dp)
-      .height(56.dp),
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    // 三项等宽等高；图标在上、文字始终在下；选中浅底铺满整格，clip 与 ripple 同一边界。
-    TabItem("书架", AppIcons.Shelf, selected == MainTab.SHELF, Modifier.weight(1f).fillMaxHeight()) { onSelect(MainTab.SHELF) }
-    TabItem("统计", AppIcons.Stats, selected == MainTab.STATS, Modifier.weight(1f).fillMaxHeight()) { onSelect(MainTab.STATS) }
-    TabItem("我的", AppIcons.Mine, selected == MainTab.MINE, Modifier.weight(1f).fillMaxHeight()) { onSelect(MainTab.MINE) }
-  }
-}
-
-@Composable
-private fun TabItem(
-  label: String,
-  icon: ImageVector,
-  selected: Boolean,
-  modifier: Modifier = Modifier,
-  onClick: () -> Unit,
-) {
-  val p = LocalPalette.current
-  val shape = RoundedCornerShape(TabBarSpec.SELECTED_RADIUS_DP.dp)
-  Column(
-    modifier
-      .defaultMinSize(minWidth = TabBarSpec.MIN_TOUCH_DP.dp, minHeight = TabBarSpec.MIN_TOUCH_DP.dp)
-      .clip(shape)
-      .background(if (selected) p.primarySoft else Color.Transparent)
-      .pressClickable(onClick = onClick),
-    horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.Center,
-  ) {
-    Icon(icon, label, tint = if (selected) p.primary else p.textSecondary, modifier = Modifier.size(24.dp))
-    Text(
-      label,
-      color = if (selected) p.primary else p.textSecondary,
-      fontSize = TabBarSpec.LABEL_SP.sp,
-      fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-      maxLines = 1,
-    )
-  }
-}
-
-const val MainBottomSpace = 168
+const val MainBottomSpace = 200

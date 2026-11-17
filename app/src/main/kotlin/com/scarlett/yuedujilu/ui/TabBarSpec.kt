@@ -9,13 +9,16 @@ object TabBarSpec {
   const val ALWAYS_SHOW_LABEL = true
   const val ICON_ABOVE_LABEL = true
   const val SELECTED_FILLS_CELL = true
-  const val OUTER_RADIUS_DP = 24
-  const val INNER_PADDING_DP = 8
-  const val SELECTED_RADIUS_DP = 12
+  const val OUTER_RADIUS_DP = 38
+  const val INNER_PADDING_DP = 6
+  const val SELECTED_RADIUS_DP = 32
   const val MIN_TOUCH_DP = 48
-  const val LABEL_SP = 11
-  const val SIDE_MARGIN_DP = 20
+  const val LABEL_SP = 12
+  const val SIDE_MARGIN_DP = 24
   const val BOTTOM_GAP_DP = 12
+
+  fun outerRadius(heightDp: Float): Float = heightDp / 2f
+  fun innerRadius(heightDp: Float): Float = outerRadius(heightDp) - INNER_PADDING_DP
 
   fun itemWeight(): Float = 1f / ITEM_COUNT
 

@@ -15,11 +15,12 @@ data class AppSnapshot(
   val settings: AppSettings = AppSettings(),
   val wereadDays: List<WereadDayRecord> = emptyList(),
   val wereadNotes: List<WereadNoteItem> = emptyList(),
+  val confirmedPhysicalUnreadDates: Set<String> = emptySet(),
 )
 
 @Serializable
 data class AppSettings(
-  val themeId: ThemeId = ThemeId.MIST_PLUM,
+  val themeId: ThemeId = ThemeId.PINE_GREEN,
   val deepSeekBaseUrl: String = "https://api.deepseek.com",
   val deepSeekModel: String = "deepseek-chat",
   val deepSeekTemperature: Float = 0.7f,

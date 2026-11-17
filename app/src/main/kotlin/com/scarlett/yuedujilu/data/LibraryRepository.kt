@@ -14,6 +14,10 @@ import java.util.UUID
 class LibraryRepository(private val store: JsonLibraryStore) {
   val state: StateFlow<AppSnapshot> = store.state
 
+  suspend fun confirmPhysicalUnread(date: String, confirmed: Boolean) = store.update {
+    it.copy(confirmedPhysicalUnreadDates = if(confirmed) it.confirmedPhysicalUnreadDates + date else it.confirmedPhysicalUnreadDates - date)
+  }
+
   suspend fun setTheme(id: ThemeId) = store.update { it.copy(settings = it.settings.copy(themeId = id)) }
 
   suspend fun updateSettings(transform: (AppSettings) -> AppSettings) =

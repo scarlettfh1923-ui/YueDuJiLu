@@ -67,19 +67,19 @@ fun BackfillScreen(vm: AppViewModel, state: AppUiState, bookId: String, sessionI
       Modifier
         .weight(1f)
         .verticalScroll(rememberScrollState())
-        .padding(horizontal = 20.dp)
+        .padding(horizontal = 24.dp)
     ) {
       Text(book.title, color = p.text, fontSize = 16.sp)
       Spacer(Modifier.height(16.dp))
-      FormField(startText, { startText = it }, "开始时间（yyyy-MM-dd HH:mm，上海时区）")
+      FormField(startText, { startText = it }, "开始时间 · 年-月-日 时:分")
       Spacer(Modifier.height(16.dp))
-      FormField(endText, { endText = it }, "结束时间（yyyy-MM-dd HH:mm，上海时区）")
+      FormField(endText, { endText = it }, "结束时间 · 年-月-日 时:分")
       Spacer(Modifier.height(16.dp))
       FormField(startPage, { startPage = it.filter { ch -> ch.isDigit() } }, "起始页", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
       Spacer(Modifier.height(16.dp))
       FormField(endPage, { endPage = it.filter { ch -> ch.isDigit() } }, "结束页", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
       Spacer(Modifier.height(16.dp))
-      NoticeCard("补录会按开始与结束时间计算有效时长。跨自然日的记录在统计里会按天拆分。")
+      NoticeCard("时间使用上海时区（UTC+8）。有效时长按起止时间计算，跨日记录自动分配到对应日期。")
       Spacer(Modifier.height(24.dp))
       PrimaryButton(
         "保存",

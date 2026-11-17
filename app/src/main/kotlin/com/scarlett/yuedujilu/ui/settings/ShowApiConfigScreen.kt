@@ -35,7 +35,7 @@ import com.scarlett.yuedujilu.ui.theme.LocalPalette
 @Composable
 fun ShowApiConfigScreen(vm: AppViewModel, state: AppUiState) {
   val p = LocalPalette.current
-  var key by rememberSaveable { mutableStateOf("") }
+  var key by androidx.compose.runtime.remember { mutableStateOf("") }
   Column(
     Modifier
       .fillMaxSize()
@@ -46,10 +46,11 @@ fun ShowApiConfigScreen(vm: AppViewModel, state: AppUiState) {
     ScreenHeader("图书查询配置", onBack = vm::back)
     Column(
       Modifier
+        .weight(1f)
         .verticalScroll(rememberScrollState())
-        .padding(horizontal = 20.dp)
+        .padding(horizontal = 24.dp)
     ) {
-      NoticeCard("供应商为万维易源（ShowAPI 1626-1）。请求地址为 https://route.showapi.com/1626-1，查询参数 appKey，表单字段 isbn。AppKey 用系统密钥库加密保存在本机，不会写入备份或日志。请自行到万维易源开通后填写，应用不会向你索要。")
+      NoticeCard("万维易源 · ISBN 图书查询。填写 AppKey 后可查书，未配置仍可手动添加。")
       Spacer(Modifier.height(16.dp))
       Text(if (state.hasShowApiKey) "已保存 AppKey（不会回显原文）。要更换请重新输入并保存。" else "尚未填写 AppKey。未填写时不会发出查询请求。", color = p.textSecondary, fontSize = 13.sp, lineHeight = 20.sp)
       Spacer(Modifier.height(16.dp))
@@ -57,6 +58,7 @@ fun ShowApiConfigScreen(vm: AppViewModel, state: AppUiState) {
         value = key,
         onValueChange = { key = it },
         label = "AppKey",
+        secret = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
       )
       Spacer(Modifier.height(20.dp))

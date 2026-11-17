@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.sp
 
 val YueDuTypography = Typography(
   displayLarge = TextStyle(
-    fontFamily = FontFamily.Serif,
+    fontFamily = FontFamily.SansSerif,
     fontWeight = FontWeight.Medium,
     fontSize = 36.sp,
     lineHeight = 40.sp,

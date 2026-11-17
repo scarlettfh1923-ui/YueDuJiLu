@@ -165,6 +165,11 @@ class AppViewModel(
 
   fun now(): Long = System.currentTimeMillis()
 
+  fun confirmPhysicalUnread(date: LocalDate, confirmed: Boolean) {
+    if(date.isAfter(LocalDate.now(Zones.Shanghai))) return
+    viewModelScope.launch { library.confirmPhysicalUnread(date.toString(), confirmed) }
+  }
+
   fun setTab(tab: MainTab) { _tab.value = tab }
   fun setQuery(q: String) { _query.value = q }
   fun setStatus(f: StatusFilter) { _status.value = f }

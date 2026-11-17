@@ -1,5 +1,6 @@
 package com.scarlett.yuedujilu.ui.mine
 
+import com.scarlett.yuedujilu.ui.theme.UiShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -14,7 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.scarlett.yuedujilu.AppUiState
@@ -34,7 +35,7 @@ fun MineScreen(vm: AppViewModel, state: AppUiState) {
       .fillMaxSize()
       .statusBarsPadding()
       .verticalScroll(rememberScrollState())
-      .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = MainBottomSpace.dp)
+      .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = MainBottomSpace.dp)
   ) {
     Group("阅读连接") {
       SettingsRow(
@@ -54,6 +55,15 @@ fun MineScreen(vm: AppViewModel, state: AppUiState) {
       )
     }
     Spacer(Modifier.height(20.dp))
+    Group("外观") {
+      SettingsRow(
+        title = "外观主题",
+        subtitle = if(state.snapshot.settings.themeId==com.scarlett.yuedujilu.domain.ThemeId.PINE_GREEN) "青瓷 · 青绿" else state.snapshot.settings.themeId.displayName,
+        icon = AppIcons.Spark,
+        onClick = { vm.go(Route.Appearance) },
+      )
+    }
+    Spacer(Modifier.height(20.dp))
     Group("AI") {
       SettingsRow(
         title = "AI 入口",
@@ -66,15 +76,6 @@ fun MineScreen(vm: AppViewModel, state: AppUiState) {
         subtitle = if (state.hasDeepSeekKey) "已保存密钥 · 不会自动调用" else "自行填写，密钥仅存本机",
         icon = AppIcons.Key,
         onClick = { vm.go(Route.DeepSeek) },
-      )
-    }
-    Spacer(Modifier.height(20.dp))
-    Group("外观") {
-      SettingsRow(
-        title = "外观主题",
-        subtitle = state.snapshot.settings.themeId.displayName,
-        icon = AppIcons.Spark,
-        onClick = { vm.go(Route.Appearance) },
       )
     }
     Spacer(Modifier.height(20.dp))
@@ -102,7 +103,7 @@ private fun Group(title: String, content: @Composable () -> Unit) {
   Column(
     Modifier
       .fillMaxWidth()
-      .shadow(8.dp, RoundedCornerShape(LocalRadii.current.container.dp), ambientColor = p.shadow, spotColor = p.shadow)
-      .background(p.surface, RoundedCornerShape(LocalRadii.current.container.dp))
+      .clip(UiShape.Regular)
+      .background(p.surface, UiShape.Regular)
   ) { content() }
 }

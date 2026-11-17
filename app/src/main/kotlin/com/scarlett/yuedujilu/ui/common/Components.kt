@@ -1,5 +1,6 @@
 package com.scarlett.yuedujilu.ui.common
 
+import com.scarlett.yuedujilu.ui.theme.UiShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -58,10 +59,11 @@ fun SoftCard(
 ) {
   val p = LocalPalette.current
   val radii = LocalRadii.current
-  val shape = RoundedCornerShape((radius ?: if (elevated) radii.inner else radii.container).dp)
-  val shadow = if (elevated) 8.dp else 6.dp
+  val shape = UiShape.Regular
+  val shadow = if (elevated) 2.dp else 0.dp
   Column(
     modifier = modifier
+      .fillMaxWidth()
       .shadow(shadow, shape, ambientColor = p.shadow, spotColor = p.shadow)
       .clip(shape)
       .background(if (elevated) p.surfaceRaised else p.surface)
@@ -76,21 +78,21 @@ fun IconButtonCircle(
   icon: ImageVector,
   contentDescription: String,
   modifier: Modifier = Modifier,
-  size: Dp = 48.dp,
+  size: Dp = 52.dp,
+  emphasized: Boolean = false,
   onClick: () -> Unit,
 ) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(LocalRadii.current.search.dp)
+  val shape = UiShape.Capsule
   Box(
     modifier = modifier
       .size(size)
-      .shadow(8.dp, shape, ambientColor = p.shadow, spotColor = p.shadow)
-      .clip(shape)
-      .background(p.surface)
+            .clip(shape)
+      .background(if(emphasized) p.primary else p.surface)
       .pressClickable(onClick = onClick),
     contentAlignment = Alignment.Center,
   ) {
-    Icon(icon, contentDescription, tint = p.text, modifier = Modifier.size(22.dp))
+    Icon(icon, contentDescription, tint = if (emphasized) p.onPrimary else p.text, modifier = Modifier.size(22.dp))
   }
 }
 
@@ -102,12 +104,11 @@ fun SearchField(
   placeholder: String = "搜索书名、作者或 ISBN",
 ) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(LocalRadii.current.search.dp)
+  val shape = UiShape.Capsule
   Row(
     modifier = modifier
-      .height(48.dp)
-      .shadow(8.dp, shape, ambientColor = p.shadow, spotColor = p.shadow)
-      .clip(shape)
+      .defaultMinSize(minHeight = 52.dp)
+            .clip(shape)
       .background(p.surface)
       .padding(horizontal = 16.dp),
     verticalAlignment = Alignment.CenterVertically,
@@ -122,10 +123,10 @@ fun SearchField(
       cursorBrush = SolidColor(p.primary),
       modifier = Modifier.weight(1f),
       decorationBox = { inner ->
-        if (value.isEmpty()) {
-          Text(placeholder, color = p.textTertiary, fontSize = 15.sp)
+        Box(contentAlignment = Alignment.CenterStart) {
+          if (value.isEmpty()) Text(placeholder, color = p.textTertiary, fontSize = 14.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+          inner()
         }
-        inner()
       },
     )
   }
@@ -138,13 +139,15 @@ fun FilterChip(
   onClick: () -> Unit,
 ) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(LocalRadii.current.chip.dp)
+  val shape = UiShape.Capsule
   Box(
     modifier = Modifier
+      .defaultMinSize(minHeight = 44.dp)
       .clip(shape)
       .background(if (selected) p.primary else p.surface)
       .pressClickable(onClick = onClick)
       .padding(horizontal = 14.dp, vertical = 8.dp),
+    contentAlignment = Alignment.Center,
   ) {
     Text(
       label,
@@ -163,10 +166,10 @@ fun PrimaryButton(
   enabled: Boolean = true,
 ) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(LocalRadii.current.chip.dp)
+  val shape = UiShape.Regular
   Box(
     modifier = modifier
-      .defaultMinSize(minHeight = 48.dp)
+      .defaultMinSize(minHeight = 52.dp)
       .clip(shape)
       .background(if (enabled) p.primary else p.surfaceMuted)
       .pressClickable(enabled = enabled, onClick = onClick)
@@ -184,10 +187,10 @@ fun QuietButton(
   modifier: Modifier = Modifier,
 ) {
   val p = LocalPalette.current
-  val shape = RoundedCornerShape(LocalRadii.current.chip.dp)
+  val shape = UiShape.Regular
   Box(
     modifier = modifier
-      .defaultMinSize(minHeight = 48.dp)
+      .defaultMinSize(minHeight = 52.dp)
       .clip(shape)
       .background(p.primarySoft)
       .pressClickable(onClick = onClick)
@@ -228,7 +231,7 @@ fun SettingsRow(
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Box(
-      Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(p.primarySoft),
+      Modifier.size(44.dp).clip(CircleShape).background(p.primarySoft),
       contentAlignment = Alignment.Center,
     ) {
       Icon(icon, null, tint = p.primary, modifier = Modifier.size(18.dp))
@@ -256,9 +259,9 @@ fun FormField(
 ) {
   val p = LocalPalette.current
   Column(modifier) {
-    Text(label, color = p.textSecondary, fontSize = 12.sp)
+    Text(label, color = p.textSecondary, fontSize = 13.sp)
     Spacer(Modifier.height(8.dp))
-    val shape = RoundedCornerShape(LocalRadii.current.inner.dp)
+    val shape = UiShape.Regular
     BasicTextField(
       value = value,
       onValueChange = onValueChange,
@@ -266,7 +269,7 @@ fun FormField(
       enabled = enabled,
       textStyle = TextStyle(color = p.text, fontSize = 16.sp),
       cursorBrush = SolidColor(p.primary),
-      keyboardOptions = keyboardOptions,
+      keyboardOptions = if(secret) KeyboardOptions(keyboardType=androidx.compose.ui.text.input.KeyboardType.Password,autoCorrectEnabled=false) else keyboardOptions,
       keyboardActions = keyboardActions,
       visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
       modifier = Modifier
@@ -274,7 +277,8 @@ fun FormField(
         .clip(shape)
         .background(p.surface)
         .border(1.dp, p.stroke, shape)
-        .padding(horizontal = 16.dp, vertical = 14.dp),
+        .defaultMinSize(minHeight = 56.dp)
+        .padding(horizontal = 16.dp, vertical = 16.dp),
     )
   }
 }
@@ -283,7 +287,7 @@ fun FormField(
 fun ScreenHeader(title: String, onBack: () -> Unit, trailing: @Composable RowScope.() -> Unit = {}) {
   val p = LocalPalette.current
   Row(
-    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+    Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     IconButtonCircle(AppIcons.ChevronLeft, "返回", onClick = onBack)
@@ -299,7 +303,7 @@ fun NoticeCard(text: String, modifier: Modifier = Modifier) {
   Row(
     modifier = modifier
       .fillMaxWidth()
-      .clip(RoundedCornerShape(LocalRadii.current.inner.dp))
+      .clip(UiShape.Regular)
       .background(p.primarySoft)
       .padding(14.dp),
     verticalAlignment = Alignment.Top,
@@ -313,36 +317,16 @@ fun NoticeCard(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun StatusTabs(
-  labels: List<Pair<String, Boolean>>,
-  onSelect: (Int) -> Unit,
-  modifier: Modifier = Modifier,
+  labels: List<Pair<String, Boolean>>, onSelect: (Int) -> Unit, modifier: Modifier = Modifier,
 ) {
   val p = LocalPalette.current
-  Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+  Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
     labels.forEachIndexed { index, (label, selected) ->
-      Column(
-        Modifier
-          .weight(1f)
-          .defaultMinSize(minHeight = 48.dp)
-          .pressClickable { onSelect(index) }
-          .padding(horizontal = 2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-      ) {
-        Text(
-          label,
-          color = if (selected) p.primary else p.textSecondary,
-          fontSize = 14.sp,
-          fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-          maxLines = 1,
-        )
-        Spacer(Modifier.height(6.dp))
-        Box(
-          Modifier
-            .fillMaxWidth()
-            .height(2.dp)
-            .background(if (selected) p.primary else androidx.compose.ui.graphics.Color.Transparent),
-        )
+      Box(Modifier.weight(1f).defaultMinSize(minHeight = 44.dp).clip(UiShape.Capsule)
+        .background(if (selected) p.primarySoft else androidx.compose.ui.graphics.Color.Transparent)
+        .pressClickable { onSelect(index) }.padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
+        Text(label, color=if(selected) p.primary else p.textSecondary, fontSize=14.sp,
+          fontWeight=if(selected) FontWeight.SemiBold else FontWeight.Normal, maxLines=1)
       }
     }
   }
