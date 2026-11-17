@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.scarlett.yuedujilu.AppUiState
 import com.scarlett.yuedujilu.AppViewModel
 import com.scarlett.yuedujilu.Route
-import com.scarlett.yuedujilu.ui.MainBottomSpace
+import com.scarlett.yuedujilu.ui.LocalMainBottomSpace
 import com.scarlett.yuedujilu.ui.common.SettingsRow
 import com.scarlett.yuedujilu.ui.icons.AppIcons
 import com.scarlett.yuedujilu.ui.theme.LocalPalette
@@ -35,7 +35,7 @@ fun MineScreen(vm: AppViewModel, state: AppUiState) {
       .fillMaxSize()
       .statusBarsPadding()
       .verticalScroll(rememberScrollState())
-      .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = MainBottomSpace.dp)
+      .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = LocalMainBottomSpace.current)
   ) {
     Group("阅读连接") {
       SettingsRow(

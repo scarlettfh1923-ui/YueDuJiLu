@@ -89,7 +89,7 @@ class LookupAndDetailsInteractionTest {
   val baselines=mutableMapOf<Int,Float>()
   rule.setContent {
    val density=LocalDensity.current.density
-   CompositionLocalProvider(LocalDensity provides Density(density,1.3f)) {
+   CompositionLocalProvider(LocalDensity provides Density(density,1.5f)) {
     YueDuTheme {
      Column { listOf("123456789" to "天","未提供" to "","1.2" to "小时").forEachIndexed { i,(v,u)->
       com.scarlett.yuedujilu.ui.stats.MetricNumber(v,u,if(i==1)26 else 36,Modifier.width(150.dp).onGloballyPositioned { c->baselines[i]=c[FirstBaseline].toFloat() })

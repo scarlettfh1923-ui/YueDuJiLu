@@ -1,6 +1,9 @@
 package com.scarlett.yuedujilu.ui.shelf
 
 import com.scarlett.yuedujilu.ui.theme.UiShape
+import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -20,6 +23,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -45,7 +49,7 @@ import com.scarlett.yuedujilu.SourceFilter
 import com.scarlett.yuedujilu.StatusFilter
 import com.scarlett.yuedujilu.domain.Book
 import com.scarlett.yuedujilu.domain.BookSource
-import com.scarlett.yuedujilu.ui.MainBottomSpace
+import com.scarlett.yuedujilu.ui.LocalMainBottomSpace
 import com.scarlett.yuedujilu.ui.common.EmptyState
 import com.scarlett.yuedujilu.ui.common.FilterChip
 import com.scarlett.yuedujilu.ui.common.IconButtonCircle
@@ -56,7 +60,7 @@ import com.scarlett.yuedujilu.ui.common.SourceSelector
 import com.scarlett.yuedujilu.ui.common.progressLabel
 import com.scarlett.yuedujilu.ui.common.sourceLabel
 import com.scarlett.yuedujilu.ui.icons.AppIcons
-import com.scarlett.yuedujilu.ui.theme.LocalPalette
+import com.scarlett.yuedujilu.ui.theme.*
 import com.scarlett.yuedujilu.ui.theme.LocalRadii
 import com.scarlett.yuedujilu.ui.theme.pressClickable
 
@@ -125,7 +129,7 @@ fun ShelfScreen(vm: AppViewModel, state: AppUiState) {
           emptySub = "试试更换筛选，或清空搜索。"
         }
       }
-      Column(Modifier.weight(1f).padding(top=52.dp),horizontalAlignment=Alignment.CenterHorizontally) {
+      Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top=32.dp,bottom=LocalMainBottomSpace.current),horizontalAlignment=Alignment.CenterHorizontally) {
         Icon(AppIcons.Shelf,null,tint=p.primary.copy(alpha=.65f),modifier=Modifier.size(64.dp))
         EmptyState(emptyTitle,emptySub)
         PrimaryButton("添加第一本书",{vm.openPlus(true)})
@@ -133,8 +137,8 @@ fun ShelfScreen(vm: AppViewModel, state: AppUiState) {
     } else {
       LazyColumn(
         modifier = Modifier.weight(1f),
-        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = MainBottomSpace.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = LocalMainBottomSpace.current),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
       ) {
         itemsIndexed(books, key = { _, b -> b.id }, contentType = { _, _ -> "book" }) { _, book ->
           BookRow(
@@ -206,33 +210,30 @@ fun BookRow(
   onAction: () -> Unit,
 ) {
   val p = LocalPalette.current
-  Row(Modifier.fillMaxWidth().shadow(7.dp,UiShape.Regular,ambientColor=p.text.copy(alpha=.24f),spotColor=p.text.copy(alpha=.24f))
-    .clip(UiShape.Regular).background(p.surfaceRaised).pressClickable(onClick=onOpen).padding(20.dp),verticalAlignment=Alignment.Top) {
-    CoverPlate(book,width=104.dp)
-    Spacer(Modifier.width(20.dp))
+  Row(Modifier.testTag("book-${book.id}").fillMaxWidth().defaultMinSize(minHeight=172.dp)
+    .porcelainSurface(UiShape.Regular,p.surface,p.text).pressClickable(onClick=onOpen).padding(18.dp),verticalAlignment=Alignment.Top) {
+    CoverPlate(book,width=76.dp)
+    Spacer(Modifier.width(18.dp))
     Column(Modifier.weight(1f)) {
-      Text(book.title,color=p.text,fontSize=20.sp,lineHeight=27.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
-      if(book.author.isNotBlank()) Text(book.author,color=p.textSecondary,fontSize=13.sp,maxLines=2,overflow=TextOverflow.Ellipsis,modifier=Modifier.padding(top=5.dp))
-      Text(book.sourceLabel(),color=p.textSecondary,fontSize=11.sp,
-        modifier=Modifier.padding(top=12.dp).clip(UiShape.Capsule).background(p.primarySoft.copy(alpha=.55f)).padding(horizontal=9.dp,vertical=4.dp))
+      Text(book.title,color=p.text,fontSize=19.sp,lineHeight=27.sp,fontWeight=FontWeight.SemiBold,maxLines=2,overflow=TextOverflow.Ellipsis)
+      Text(listOf(book.author.takeIf{it.isNotBlank()},book.sourceLabel()).filterNotNull().joinToString(" · "),color=p.textSecondary,fontSize=11.sp,lineHeight=18.sp,maxLines=2,overflow=TextOverflow.Ellipsis,modifier=Modifier.padding(top=3.dp))
       if(book.source!=BookSource.WEREAD) {
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(9.dp))
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-          Text(book.progressLabel(),color=p.text,fontSize=13.sp,modifier=Modifier.weight(1f))
+          Text(book.progressLabel(),color=p.textSecondary,fontSize=12.sp,lineHeight=18.sp,modifier=Modifier.weight(1f))
           if((book.pageCount?:0)>0)Text("${(book.currentPage.toLong()*100/(book.pageCount?:1).coerceAtLeast(1)).coerceIn(0,100)}%",color=p.textSecondary,fontSize=11.sp)
         }
         val progress=if((book.pageCount?:0)>0)(book.currentPage.toFloat()/book.pageCount!!).coerceIn(0f,1f) else 0f
-        Box(Modifier.padding(top=8.dp).fillMaxWidth().height(3.dp).clip(UiShape.Capsule).background(p.track)) {
+        Box(Modifier.padding(top=5.dp).fillMaxWidth().height(3.dp).clip(UiShape.Capsule).background(p.track)) {
           Box(Modifier.fillMaxWidth(progress).height(3.dp).background(p.primary.copy(alpha=.65f)))
         }
-        Spacer(Modifier.height(24.dp))
         Box(Modifier.defaultMinSize(minHeight=48.dp).pressClickable(onClick=onAction),contentAlignment=Alignment.CenterStart) {
-          Row(Modifier.clip(UiShape.Capsule).background(p.primarySoft).padding(horizontal=14.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically) {
-            Icon(AppIcons.Play,null,tint=p.primary,modifier=Modifier.size(13.dp))
-            Text(when {timerRunningOnThis->"查看计时";book.currentPage>0->"继续阅读";else->"开始阅读"},color=p.primary,fontWeight=FontWeight.SemiBold,fontSize=12.sp,modifier=Modifier.padding(start=5.dp))
+          Row(Modifier.porcelainSurface(UiShape.Capsule,p.primarySoft,p.text,PorcelainLevel.SUBTLE).padding(horizontal=11.dp,vertical=6.dp),verticalAlignment=Alignment.CenterVertically) {
+            Icon(AppIcons.Play,null,tint=p.primary,modifier=Modifier.size(12.dp))
+            Text(when {timerRunningOnThis->"查看计时";book.currentPage>0->"继续阅读";else->"开始阅读"},color=p.primary,fontWeight=FontWeight.SemiBold,fontSize=11.sp,lineHeight=18.sp,modifier=Modifier.padding(start=5.dp))
           }
         }
-      } else Text("查看记录",color=p.primary,fontSize=13.sp,modifier=Modifier.padding(top=20.dp))
+      } else Text("查看记录",color=p.primary,fontSize=13.sp,modifier=Modifier.padding(top=16.dp))
     }
   }
 }
@@ -247,9 +248,9 @@ fun CoverPlate(book: Book, width: androidx.compose.ui.unit.Dp) {
     Box(Modifier.align(Alignment.CenterEnd).width(5.dp).height(width*1.52f).background(p.stroke))
     Box(Modifier.align(Alignment.CenterEnd).padding(end=2.dp).width(1.dp).height(width*1.52f).background(p.surface))
     Box(Modifier.padding(start=7.dp).width(1.dp).height(width*1.48f).background(p.primary.copy(alpha=.2f)))
-    Column(Modifier.fillMaxSize().padding(horizontal=14.dp,vertical=20.dp),verticalArrangement=Arrangement.SpaceBetween) {
-      Text(book.title,color=p.text,fontSize=if(width.value>85)14.sp else 12.sp,lineHeight=20.sp,fontWeight=FontWeight.Medium,maxLines=4,overflow=TextOverflow.Ellipsis)
-      Text("暂无封面",color=p.textSecondary,fontSize=10.sp)
+    Column(Modifier.fillMaxSize().padding(horizontal=if(width.value>85)14.dp else 10.dp,vertical=14.dp),verticalArrangement=Arrangement.SpaceBetween) {
+      Text(book.title,color=p.text,fontSize=if(width.value>85)14.sp else 11.sp,lineHeight=17.sp,fontWeight=FontWeight.Medium,maxLines=if(width.value>85)4 else 2,overflow=TextOverflow.Ellipsis)
+      Text("暂无封面",color=p.textSecondary,fontSize=if(width.value>85)10.sp else 8.sp,maxLines=1)
     }
   }
 }

@@ -53,13 +53,13 @@ import com.scarlett.yuedujilu.domain.StatsOverview
 import com.scarlett.yuedujilu.domain.StatsPeriod
 import com.scarlett.yuedujilu.domain.WereadImport
 import com.scarlett.yuedujilu.domain.Zones
-import com.scarlett.yuedujilu.ui.MainBottomSpace
+import com.scarlett.yuedujilu.ui.LocalMainBottomSpace
 import com.scarlett.yuedujilu.ui.common.IconButtonCircle
 import com.scarlett.yuedujilu.ui.common.SoftCard
 import com.scarlett.yuedujilu.ui.common.SourceSelector
 import com.scarlett.yuedujilu.ui.common.yearMonthLabel
 import com.scarlett.yuedujilu.ui.icons.AppIcons
-import com.scarlett.yuedujilu.ui.theme.LocalPalette
+import com.scarlett.yuedujilu.ui.theme.*
 import com.scarlett.yuedujilu.ui.theme.pressClickable
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -79,7 +79,7 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
       .fillMaxSize()
       .statusBarsPadding()
       .verticalScroll(rememberScrollState())
-      .padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = MainBottomSpace.dp)
+      .padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = LocalMainBottomSpace.current)
   ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
       OverviewTabs(state.statsMode, vm::setStatsMode, Modifier.weight(1f))
@@ -91,7 +91,8 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
         }
       })
     }
-    Spacer(Modifier.height(14.dp))
+    Spacer(Modifier.height(12.dp))
+    Column(Modifier.fillMaxWidth().clip(UiShape.Regular).background(p.toolBase).padding(14.dp)) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
       if(state.statsMode==StatsMode.OVERVIEW) PeriodCapsules(
         selected = state.statsPeriod,
@@ -132,6 +133,7 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
       onShift = vm::shiftStatsAnchor,
       onPick = vm::setStatsAnchor,
     )
+    }
     Spacer(Modifier.height(18.dp))
     if (state.statsMode == StatsMode.OVERVIEW) {
       Text(when(state.statsSource){SourceFilter.ALL->"实体 + 微信 · 已确认记录";SourceFilter.PHYSICAL->"实体书 · 本机记录";SourceFilter.WEREAD->"微信读书 · 同步记录"}, color=p.textSecondary,fontSize=12.sp)
@@ -141,7 +143,7 @@ fun StatsScreen(vm: AppViewModel, state: AppUiState) {
       }
       Spacer(Modifier.height(12.dp))
       OverviewCards(report,onSelect={vm.go(Route.StatsDetail(it))},source=state.statsSource)
-      Spacer(Modifier.height(14.dp))
+      Spacer(Modifier.height(12.dp))
       Text("电子书仅含微信读书，精确本数暂未提供。轻点卡片查看真实明细与计算口径。",color=p.textSecondary,fontSize=12.sp,lineHeight=21.sp)
       Spacer(Modifier.height(10.dp))
       Text(report.coverageNote, color = p.textTertiary, fontSize = 12.sp, lineHeight = 18.sp)
@@ -213,9 +215,8 @@ private fun PeriodCapsules(selected: StatsPeriod, onSelect: (StatsPeriod) -> Uni
       Box(
         Modifier
           .weight(1f)
-          .defaultMinSize(minHeight = 42.dp)
-          .clip(UiShape.Capsule)
-          .background(if (on) p.surfaceRaised else Color.Transparent)
+          .defaultMinSize(minHeight = 48.dp)
+          .then(if(on)Modifier.porcelainSurface(UiShape.Capsule,p.surfaceRaised,p.text,PorcelainLevel.CONTROL) else Modifier.clip(UiShape.Capsule))
           .pressClickable { onSelect(period) },
         contentAlignment = Alignment.Center,
       ) {
@@ -308,14 +309,14 @@ private fun periodChoices(period: StatsPeriod, today: LocalDate, anchor: LocalDa
 @Composable
 internal fun OverviewCards(report:com.scarlett.yuedujilu.domain.OverviewReport,onSelect:(com.scarlett.yuedujilu.domain.StatsMetric)->Unit={},source:SourceFilter=SourceFilter.ALL) {
   val p=LocalPalette.current
-  val bases=listOf(Color(0xFFDAEAE1),Color(0xFFDFE8F2),Color(0xFFF0E8DA),Color(0xFFE8E3F0),Color(0xFFE2EDE7),Color(0xFFE5ECF3))
+  val bases=listOf(Color(0xFFD8E9DE),Color(0xFFDFE8F2),Color(0xFFF1E9DA),Color(0xFFE8E3F0),Color(0xFFDEECE2),Color(0xFFE3EBF3))
   val colors=bases.map { if(p.id==com.scarlett.yuedujilu.domain.ThemeId.PINE_GREEN)it else androidx.compose.ui.graphics.lerp(it,p.primarySoft,.22f) }
   val metrics=com.scarlett.yuedujilu.domain.StatsMetric.entries
   val values=listOf(report.durationMs,report.days,report.booksRead,
     MetricValue.Missing(if(source==SourceFilter.PHYSICAL)"当前筛选不含电子书" else "微信读书未提供本期精确书单/本数"),report.streak,report.dailyAverageMs)
-  Column(verticalArrangement=Arrangement.spacedBy(14.dp)) {
+  Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
     metrics.chunked(2).forEach { row->
-      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(14.dp)) {
+      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
         row.forEach { metric-> MetricCard(metric,values[metric.ordinal],colors[metric.ordinal],Modifier.weight(1f)){onSelect(metric)} }
       }
     }
@@ -326,7 +327,7 @@ private fun MetricCard(metric:com.scarlett.yuedujilu.domain.StatsMetric,value:Me
   val p=LocalPalette.current;val density=androidx.compose.ui.platform.LocalDensity.current
   val format=when(metric){com.scarlett.yuedujilu.domain.StatsMetric.DURATION,com.scarlett.yuedujilu.domain.StatsMetric.AVERAGE->::unitDuration;com.scarlett.yuedujilu.domain.StatsMetric.PHYSICAL,com.scarlett.yuedujilu.domain.StatsMetric.EBOOK->::unitBooks;else->::unitDays}
   val(v,u,foot,compare)=present(value,format)
-  Box(modifier.height((144f+100f*(density.fontScale.coerceAtLeast(1f)-1)).dp).clip(UiShape.Regular).background(background)
+  Box(modifier.height((134f+100f*(density.fontScale.coerceAtLeast(1f)-1)).dp).clip(UiShape.Regular).background(background)
     .pressClickable(onClick=onClick).then(Modifier.semantics {contentDescription="${metric.label}：$v$u"})
     .testTag("metric-${metric.name}").padding(18.dp)) {
     Column(Modifier.fillMaxSize()) {
@@ -347,12 +348,12 @@ internal fun compactCardNumber(text:String):String {
  return java.math.BigDecimal.valueOf(n/divisor).setScale(1,java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()+suffix
 }
 @Composable
-internal fun MetricNumber(value:String,unit:String,size:Int=36,modifier:Modifier=Modifier) {
+internal fun MetricNumber(value:String,unit:String,size:Int=36,modifier:Modifier=Modifier,onNumberLayout:((androidx.compose.ui.text.TextLayoutResult)->Unit)?=null) {
  val p=LocalPalette.current;val density=androidx.compose.ui.platform.LocalDensity.current
  androidx.compose.ui.layout.Layout(content={
   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
    androidx.compose.foundation.text.BasicText(value,style=androidx.compose.ui.text.TextStyle(color=p.text,fontSize=size.sp,fontWeight=FontWeight.Medium,fontFeatureSettings="tnum",letterSpacing=(-.5).sp),
-    maxLines=1,overflow=TextOverflow.Ellipsis,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(16.sp,size.sp,1.sp),modifier=Modifier.weight(1f,fill=false).alignByBaseline())
+    maxLines=1,overflow=TextOverflow.Ellipsis,autoSize=androidx.compose.foundation.text.TextAutoSize.StepBased(14.sp,size.sp,1.sp),onTextLayout={onNumberLayout?.invoke(it)},modifier=Modifier.weight(1f,fill=false).alignByBaseline())
    if(unit.isNotEmpty())Text(unit,color=p.text,fontSize=12.sp,maxLines=1,modifier=Modifier.padding(start=3.dp,end=10.dp).alignByBaseline())
   }
  },modifier=modifier.fillMaxWidth().height(with(density){52.sp.toDp()})) { measurables,c->

@@ -26,3 +26,6 @@ local.properties
 /ui-audit/
 /artifacts/
 *.hprof
+
+# Explicitly private owner-requested signing backups; never publish.
+private-delivery/

@@ -1,6 +1,6 @@
 package com.scarlett.yuedujilu.ui.common
 
-import com.scarlett.yuedujilu.ui.theme.UiShape
+import com.scarlett.yuedujilu.ui.theme.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -86,9 +86,8 @@ fun IconButtonCircle(
   val shape = UiShape.Capsule
   Box(
     modifier = modifier
-      .size(size)
-            .clip(shape)
-      .background(if(emphasized) p.primary else p.surface)
+      .size(size.coerceAtLeast(48.dp))
+      .porcelainSurface(shape,if(emphasized)p.primary else p.surfaceRaised,p.text,PorcelainLevel.CONTROL)
       .pressClickable(onClick = onClick),
     contentAlignment = Alignment.Center,
   ) {
@@ -108,8 +107,7 @@ fun SearchField(
   Row(
     modifier = modifier
       .defaultMinSize(minHeight = 52.dp)
-            .clip(shape)
-      .background(p.surface)
+      .porcelainSurface(shape,p.surfaceRaised,p.text,PorcelainLevel.CONTROL)
       .padding(horizontal = 16.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
@@ -320,12 +318,12 @@ fun StatusTabs(
   labels: List<Pair<String, Boolean>>, onSelect: (Int) -> Unit, modifier: Modifier = Modifier,
 ) {
   val p = LocalPalette.current
-  Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+  Row(modifier.fillMaxWidth().clip(UiShape.Capsule).background(p.groupBase).padding(6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
     labels.forEachIndexed { index, (label, selected) ->
-      Box(Modifier.weight(1f).defaultMinSize(minHeight = 44.dp).clip(UiShape.Capsule)
-        .background(if (selected) p.primarySoft else androidx.compose.ui.graphics.Color.Transparent)
-        .pressClickable { onSelect(index) }.padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
-        Text(label, color=if(selected) p.primary else p.textSecondary, fontSize=14.sp,
+      Box(Modifier.weight(1f).defaultMinSize(minHeight = 48.dp)
+        .then(if(selected)Modifier.porcelainSurface(UiShape.Capsule,p.surfaceRaised,p.text,PorcelainLevel.CONTROL) else Modifier.clip(UiShape.Capsule))
+        .pressClickable { onSelect(index) }.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+        Text(label, color=if(selected) p.primary else p.textSecondary, fontSize=13.sp,lineHeight=20.sp,
           fontWeight=if(selected) FontWeight.SemiBold else FontWeight.Normal, maxLines=1)
       }
     }
@@ -341,16 +339,11 @@ fun SourceSelector(
   val p = LocalPalette.current
   var expanded by remember { mutableStateOf(false) }
   Box {
-    Row(
-      Modifier
-        .defaultMinSize(minHeight = 40.dp)
-        .pressClickable { expanded = true }
-        .padding(horizontal = 4.dp, vertical = 6.dp),
-      verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Text(label, color = p.textSecondary, fontSize = 13.sp)
-      Spacer(Modifier.width(4.dp))
-      Icon(AppIcons.ChevronDown, null, tint = p.textTertiary, modifier = Modifier.size(16.dp))
+    Box(Modifier.defaultMinSize(minHeight=48.dp).pressClickable {expanded=true},contentAlignment=Alignment.Center) {
+      Row(Modifier.porcelainSurface(UiShape.Capsule,p.surfaceRaised,p.text,PorcelainLevel.SUBTLE).padding(horizontal=10.dp,vertical=7.dp),verticalAlignment=Alignment.CenterVertically) {
+        Text(label,color=p.textSecondary,fontSize=12.sp,maxLines=1)
+        Spacer(Modifier.width(5.dp));Icon(AppIcons.ChevronDown,null,tint=p.textSecondary,modifier=Modifier.size(13.dp))
+      }
     }
     androidx.compose.material3.DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, containerColor = p.surface) {
       options.forEachIndexed { index, (text, selected) ->

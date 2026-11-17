@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.sp
 import com.scarlett.yuedujilu.*
 import com.scarlett.yuedujilu.data.todayInShanghai
 import com.scarlett.yuedujilu.domain.*
-import com.scarlett.yuedujilu.ui.MainBottomSpace
+import com.scarlett.yuedujilu.ui.LocalMainBottomSpace
 import com.scarlett.yuedujilu.ui.common.*
 import com.scarlett.yuedujilu.ui.icons.AppIcons
 import com.scarlett.yuedujilu.ui.theme.*
@@ -41,7 +41,7 @@ internal data class StatsBundle(val report:OverviewReport,val detail:StatsDetail
  val p=LocalPalette.current;val bundle=rememberStatsBundle(state,vm.wereadAccountHash());val d=bundle.detail;val report=bundle.report
  val selectedValue=when(metric){StatsMetric.DURATION->report.durationMs;StatsMetric.DAYS->report.days;StatsMetric.PHYSICAL->report.booksRead;StatsMetric.EBOOK->MetricValue.Missing("微信接口未提供精确书单或本数");StatsMetric.STREAK->d.runMetric;StatsMetric.AVERAGE->d.averageMs}
  val today=todayInShanghai(state.now)
- Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal=24.dp).padding(bottom=MainBottomSpace.dp).testTag("detail-${metric.name}")) {
+ Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal=24.dp).padding(bottom=LocalMainBottomSpace.current).testTag("detail-${metric.name}")) {
   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
    IconButtonCircle(AppIcons.ChevronLeft,"返回统计",onClick=vm::back)
    Text(metric.label,color=p.text,fontSize=19.sp,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f).padding(start=8.dp))

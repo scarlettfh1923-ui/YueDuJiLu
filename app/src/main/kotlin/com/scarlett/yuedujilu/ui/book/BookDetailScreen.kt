@@ -1,5 +1,10 @@
 package com.scarlett.yuedujilu.ui.book
 
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
+import com.scarlett.yuedujilu.ui.theme.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -77,8 +82,10 @@ fun BookDetailScreen(vm: AppViewModel, state: AppUiState, bookId: String) {
       .navigationBarsPadding()
       .imePadding()
   ) {
-    ScreenHeader(title = "书籍详情", onBack = vm::back) {
-      IconButtonCircle(AppIcons.Edit, "编辑", onClick = { vm.go(Route.EditBook(book.id)) })
+    Row(Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=8.dp),verticalAlignment=Alignment.CenterVertically) {
+      IconButtonCircle(AppIcons.ChevronLeft,"返回",onClick=vm::back)
+      Text("书籍详情",color=p.text,fontSize=16.sp,fontWeight=FontWeight.SemiBold,textAlign=TextAlign.Center,modifier=Modifier.weight(1f))
+      IconButtonCircle(AppIcons.Edit,"编辑",onClick={vm.go(Route.EditBook(book.id))})
     }
     Column(
       Modifier
@@ -86,62 +93,42 @@ fun BookDetailScreen(vm: AppViewModel, state: AppUiState, bookId: String) {
         .verticalScroll(rememberScrollState())
         .padding(horizontal = 24.dp, vertical = 8.dp)
     ) {
-      Column(Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          CoverPlate(book, width = 100.dp)
-          Spacer(Modifier.width(16.dp))
-          Column(Modifier.weight(1f)) {
-            Text(book.title, color = p.text, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-            if (book.author.isNotBlank()) Text(book.author, color = p.textSecondary, fontSize = 14.sp)
-            Spacer(Modifier.height(8.dp))
-            Text("${book.sourceLabel()} · ${book.statusLabel()} · ${book.progressLabel()}", color = p.textSecondary, fontSize = 13.sp)
-            book.isbn?.takeIf { it.isNotBlank() }?.let {
-              Text("ISBN $it", color = p.textTertiary, fontSize = 12.sp)
-            }
-            if (book.status == BookStatus.FINISHED && book.finishedAtEpochMs != null) {
-              Text("完读于 ${formatDate(book.finishedAtEpochMs)}", color = p.primary, fontSize = 13.sp)
-            }
+      Row(Modifier.fillMaxWidth().porcelainSurface(UiShape.Regular,p.surface,p.text).padding(18.dp),verticalAlignment=Alignment.Top) {
+        CoverPlate(book,width=84.dp)
+        Spacer(Modifier.width(18.dp))
+        Column(Modifier.weight(1f)) {
+          Text(book.title,color=p.text,fontSize=21.sp,lineHeight=29.sp,fontWeight=FontWeight.SemiBold)
+          if(book.author.isNotBlank())Text(book.author,color=p.textSecondary,fontSize=12.sp,lineHeight=18.sp,modifier=Modifier.padding(top=4.dp))
+          Text("${book.sourceLabel()} · ${book.statusLabel()}",color=p.textSecondary,fontSize=11.sp,lineHeight=18.sp,modifier=Modifier.padding(top=10.dp))
+          Text(book.progressLabel(),color=p.textSecondary,fontSize=13.sp,lineHeight=20.sp,modifier=Modifier.padding(top=8.dp))
+          val progress=if((book.pageCount?:0)>0)(book.currentPage.toFloat()/book.pageCount!!).coerceIn(0f,1f) else 0f
+          Box(Modifier.padding(top=7.dp).fillMaxWidth().height(3.dp).clip(UiShape.Capsule).background(p.track)) {
+            Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(p.primary.copy(alpha=.65f)))
           }
+          book.isbn?.takeIf{it.isNotBlank()}?.let { Text("ISBN $it",color=p.textTertiary,fontSize=11.sp,lineHeight=17.sp,modifier=Modifier.padding(top=8.dp)) }
+          if(book.status==BookStatus.FINISHED&&book.finishedAtEpochMs!=null)Text("完读于 ${formatDate(book.finishedAtEpochMs)}",color=p.primary,fontSize=12.sp,lineHeight=18.sp)
         }
-        if (book.isPhysicalBook()) {
-          Spacer(Modifier.height(16.dp))
-          val action = when {
-            runningHere -> "查看计时"
-            book.currentPage > 0 -> "继续阅读"
-            else -> "开始阅读"
-          }
-          PrimaryButton(action, onClick = { vm.startOrOpenTimer(book) }, modifier = Modifier.fillMaxWidth())
+      }
+      if(book.isPhysicalBook()) {
+        Spacer(Modifier.height(16.dp))
+        Column(Modifier.fillMaxWidth().clip(UiShape.Regular).background(p.groupBase).padding(16.dp)) {
+          DetailAction(when {runningHere->"查看计时";book.currentPage>0->"继续阅读";else->"开始阅读"},true,{vm.startOrOpenTimer(book)},Modifier.fillMaxWidth())
           Spacer(Modifier.height(10.dp))
-          Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            QuietButton("补录记录", onClick = { vm.go(Route.Backfill(book.id)) },modifier=Modifier.weight(1f))
-            if (book.status != BookStatus.FINISHED) {
-              QuietButton("标记读完", onClick = { vm.markFinished(book.id) },modifier=Modifier.weight(1f))
-            } else {
-              QuietButton("撤销读完", onClick = { vm.undoFinish(book.id) },modifier=Modifier.weight(1f))
-            }
+          Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            DetailAction("补录记录",false,{vm.go(Route.Backfill(book.id))},Modifier.weight(1f).fillMaxHeight())
+            DetailAction(if(book.status==BookStatus.FINISHED)"撤销读完" else "标记读完",false,{
+              if(book.status==BookStatus.FINISHED)vm.undoFinish(book.id) else vm.markFinished(book.id)
+            },Modifier.weight(1f).fillMaxHeight())
+            DetailAction(if(book.status==BookStatus.ABANDONED)"取消弃读" else "移入弃读",false,{vm.setAbandoned(book.id,book.status!=BookStatus.ABANDONED)},Modifier.weight(1f).fillMaxHeight())
           }
-          if (book.status == BookStatus.FINISHED) {
-            Spacer(Modifier.height(8.dp))
-            QuietButton("修改完读日期", onClick = { showDate = true })
+          if(book.status==BookStatus.FINISHED) {
+            Spacer(Modifier.height(10.dp));DetailAction("修改完读日期",false,{showDate=true},Modifier.fillMaxWidth())
           }
-          if (book.status != BookStatus.ABANDONED) {
-            Spacer(Modifier.height(8.dp))
-            QuietButton("移入弃读", onClick = { vm.setAbandoned(book.id, true) })
-          } else {
-            Spacer(Modifier.height(8.dp))
-            QuietButton("取消弃读", onClick = { vm.setAbandoned(book.id, false) })
-          }
-          Text(
-            "读完由你决定，不强制翻到最后一页，保留真实阅读进度。",
-            color = p.textTertiary,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(top = 10.dp),
-            lineHeight = 18.sp,
-          )
+          Text("读完由你决定，保留真实阅读进度。",color=p.textSecondary,fontSize=11.sp,lineHeight=18.sp,modifier=Modifier.padding(top=10.dp))
         }
       }
       Spacer(Modifier.height(20.dp))
-      Text("阅读记录", color = p.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+      Text("阅读记录 · ${sessions.size}", color = p.text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
       Spacer(Modifier.height(10.dp))
       if (sessions.isEmpty()) {
         SoftCard { Text("还没有阅读记录。开始计时或补录一次即可。", color = p.textSecondary, fontSize = 14.sp) }
@@ -184,3 +171,13 @@ fun BookDetailScreen(vm: AppViewModel, state: AppUiState, bookId: String) {
 
 private fun com.scarlett.yuedujilu.domain.Book.isPhysicalBook() =
   source != com.scarlett.yuedujilu.domain.BookSource.WEREAD
+
+@Composable
+private fun DetailAction(text:String,primary:Boolean,onClick:()->Unit,modifier:Modifier=Modifier) {
+ val p=LocalPalette.current
+ Box(modifier.defaultMinSize(minHeight=if(primary)52.dp else 48.dp)
+  .porcelainSurface(if(primary)UiShape.Capsule else UiShape.Regular,if(primary)p.primarySoft else p.surfaceRaised,p.text,if(primary)PorcelainLevel.CONTROL else PorcelainLevel.SUBTLE)
+  .pressClickable(onClick=onClick).padding(horizontal=6.dp,vertical=10.dp),contentAlignment=Alignment.Center) {
+   Text(text,color=if(primary)p.primary else p.textSecondary,fontSize=if(primary)14.sp else 12.sp,lineHeight=18.sp,fontWeight=if(primary)FontWeight.SemiBold else FontWeight.Medium,textAlign=TextAlign.Center,maxLines=2)
+ }
+}

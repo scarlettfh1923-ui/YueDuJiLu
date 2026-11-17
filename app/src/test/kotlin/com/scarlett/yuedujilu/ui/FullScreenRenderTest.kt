@@ -80,27 +80,32 @@ class FullScreenRenderTest {
       Case("19-empty",base.copy(snapshot=AppSnapshot())),
       Case("20-add-sheet",base.copy(showPlus=true)),
       Case("21-active-timer-bar",base),
-      Case("22-narrow-large-timer",base.copy(route=Route.EndSession(book.id)),360,1.3f),
-      Case("23-narrow-large-end",base.copy(route=Route.EndSession(book.id)),360,1.3f),
-      Case("24-narrow-large-empty",base.copy(snapshot=AppSnapshot()),360,1.3f)
+      Case("22-narrow-large-timer",base.copy(route=Route.EndSession(book.id)),360,1.5f),
+      Case("23-narrow-large-end",base.copy(route=Route.EndSession(book.id)),360,1.5f),
+      Case("24-narrow-large-empty",base.copy(snapshot=AppSnapshot()),360,1.5f)
     )
     listOf(MainTab.SHELF,MainTab.STATS,MainTab.MINE).forEach {
-      cases+=Case("narrow-large-${it.name}",base.copy(tab=it),360,1.3f)
+      cases+=Case("narrow-large-${it.name}",base.copy(tab=it),360,1.5f)
     }
-    cases+=Case("narrow-large-calendar",base.copy(tab=MainTab.STATS,statsMode=StatsMode.CALENDAR),360,1.3f)
-    cases+=Case("narrow-large-detail",base.copy(route=Route.BookDetail(book.id)),360,1.3f)
-    cases+=Case("narrow-large-form",base.copy(route=Route.Backfill(book.id)),360,1.3f)
-    cases+=Case("narrow-large-long-title",base.copy(snapshot=base.snapshot.copy(books=listOf(book.copy(title="一本有着非常长非常长的书名与副标题的书：关于阅读、时间和记忆的故事",author="一位名字也非常长的作者与译者")))),360,1.3f)
+    cases+=Case("narrow-large-calendar",base.copy(tab=MainTab.STATS,statsMode=StatsMode.CALENDAR),360,1.5f)
+    cases+=Case("narrow-large-detail",base.copy(route=Route.BookDetail(book.id)),360,1.5f)
+    cases+=Case("narrow-large-form",base.copy(route=Route.Backfill(book.id)),360,1.5f)
+    cases+=Case("narrow-large-long-title",base.copy(snapshot=base.snapshot.copy(books=listOf(book.copy(title="一本有着非常长非常长的书名与副标题的书：关于阅读、时间和记忆的故事",author="一位名字也非常长的作者与译者")))),360,1.5f)
     ThemeId.entries.forEach { cases+=Case("theme-${it.name}",base.copy(tab=MainTab.STATS),theme=it) }
-    cases+=Case("narrow-large-metric-stress",base.copy(tab=MainTab.STATS),360,1.3f,stress=true)
+    cases+=Case("narrow-large-metric-stress",base.copy(tab=MainTab.STATS),360,1.5f,stress=true)
     StatsMetric.entries.forEach { metric->
       cases+=Case("detail-${metric.name}",base.copy(tab=MainTab.STATS,route=Route.StatsDetail(metric)))
-      cases+=Case("narrow-large-detail-${metric.name}",base.copy(tab=MainTab.STATS,route=Route.StatsDetail(metric)),360,1.3f)
+      cases+=Case("narrow-large-detail-${metric.name}",base.copy(tab=MainTab.STATS,route=Route.StatsDetail(metric)),360,1.5f)
     }
     ThemeId.entries.forEach { cases+=Case("shelf-theme-${it.name}",base,theme=it) }
     cases+=Case("detail-duration-lower",base.copy(tab=MainTab.STATS,route=Route.StatsDetail(StatsMetric.DURATION)))
     cases+=Case("detail-average-lower",base.copy(tab=MainTab.STATS,route=Route.StatsDetail(StatsMetric.AVERAGE)))
     cases+=Case("detail-days-past-week",base.copy(tab=MainTab.STATS,route=Route.StatsDetail(StatsMetric.DAYS),statsPeriod=StatsPeriod.WEEK,statsAnchor=today.minusWeeks(2)))
+    ThemeId.entries.forEach { cases+=Case("book-detail-theme-${it.name}",base.copy(route=Route.BookDetail(book.id)),theme=it) }
+    cases+=Case("narrow-large-detail-long-title",base.copy(route=Route.BookDetail(book.id),snapshot=base.snapshot.copy(books=listOf(book.copy(title="一本有着非常长非常长的书名与副标题的书：关于阅读、时间和记忆的故事",author="一位名字也非常长的作者与译者")))),360,1.5f)
+    cases+=Case("narrow-large-shelf-last-item",base,360,1.5f)
+    cases+=Case("narrow-large-stats-last-item",base.copy(tab=MainTab.STATS),360,1.5f)
+    cases+=Case("narrow-large-shelf-last-item-with-timer",base,360,1.5f)
     var current by mutableStateOf(cases.first())
     rule.setContent {
       val c=current
@@ -121,15 +126,33 @@ class FullScreenRenderTest {
         }
       }
     }
-    val out=File("../ui-audit/1.0.4/screenshots/native").apply { mkdirs() }
+    val out=File("../ui-audit/1.0.5/screenshots/native").apply { mkdirs() }
     val metadata=mutableListOf<String>()
     for(c in cases) {
-      if(c.name=="06-timer" || c.name=="21-active-timer-bar" || c.name=="22-narrow-large-timer") repo.startSession(book.id,76,now-25*60_000)
+      if(c.name=="06-timer" || c.name=="21-active-timer-bar" || c.name=="22-narrow-large-timer" || c.name=="narrow-large-shelf-last-item-with-timer") repo.startSession(book.id,76,now-25*60_000)
       rule.runOnIdle { current=c }
       rule.waitForIdle()
       if(c.name=="07-end" || c.name=="23-narrow-large-end") { rule.onNodeWithText("结束阅读").performClick();rule.waitForIdle() }
       if(c.name=="detail-duration-lower")rule.onNodeWithText("来源拆分").performScrollTo()
       if(c.name=="detail-average-lower")rule.onNodeWithText("阅读日日均 · 另一种口径").performScrollTo()
+      if(c.name.startsWith("narrow-large-shelf-last-item")) {
+        rule.onNodeWithText("我与地坛").performScrollTo()
+        rule.onAllNodes(hasScrollAction()).filterToOne(hasAnyDescendant(hasText("我与地坛"))).performTouchInput { swipeUp() }
+        rule.waitForIdle()
+        val item=rule.onNodeWithTag("book-b2").fetchSemanticsNode().boundsInRoot
+        val nav=rule.onNodeWithTag(if(c.name.endsWith("with-timer"))"active-timer" else "liquid-nav").fetchSemanticsNode().boundsInRoot
+        Assert.assertTrue("Last book is above navigation",item.bottom<nav.top)
+      }
+      if(c.name=="narrow-large-stats-last-item") {
+        rule.onNodeWithTag("metric-AVERAGE").performScrollTo()
+        rule.onAllNodes(hasScrollAction()).filterToOne(hasAnyDescendant(hasTestTag("metric-AVERAGE"))).performTouchInput {swipeUp()}
+        rule.waitForIdle()
+        val nav=rule.onNodeWithTag("liquid-nav").fetchSemanticsNode().boundsInRoot
+        val card=rule.onNodeWithTag("metric-AVERAGE").fetchSemanticsNode().boundsInRoot
+        val note=rule.onNodeWithText("缺失日不按",substring=true).fetchSemanticsNode().boundsInRoot
+        Assert.assertTrue("Last metric above navigation after scroll",card.bottom<nav.top)
+        Assert.assertTrue("Final coverage note above navigation after scroll",note.bottom<nav.top)
+      }
       val nodes=rule.onAllNodes(isRoot()).fetchSemanticsNodes()
       val view=(nodes.last().root as ViewRootForTest).view
       val widthPx=(c.width*view.resources.displayMetrics.density).toInt().coerceAtMost(view.width)

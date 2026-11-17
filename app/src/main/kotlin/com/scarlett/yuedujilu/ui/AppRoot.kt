@@ -8,6 +8,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +39,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -131,7 +134,11 @@ private fun MainTabs(vm: AppViewModel, state: AppUiState) {
   val treatment = LocalGlassTreatment.current
   val hazeState = rememberLayerBackdrop()
   val tabState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
-  CompositionLocalProvider(LocalBackdrop provides hazeState) {
+  val scale=androidx.compose.ui.platform.LocalDensity.current.fontScale.coerceAtLeast(1f)
+  val navHeight=(76f+36f*(scale-1f)).dp
+  val timerHeight=if(active!=null&&activeBook!=null)(maxOf(48f,40f*scale)+36f).dp else 0.dp
+  val bottomSpace=navHeight+timerHeight+36.dp+androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+  CompositionLocalProvider(LocalBackdrop provides hazeState,LocalMainBottomSpace provides bottomSpace) {
   Box(Modifier.fillMaxSize()) {
     Box(
       Modifier
@@ -196,6 +203,7 @@ private fun TimerBar(
     Modifier
       .fillMaxWidth()
       .glassSurface(shape)
+      .then(Modifier.testTag("active-timer"))
       .pressClickable(onClick = onOpen)
       .padding(horizontal = 16.dp, vertical = 12.dp),
     verticalAlignment = Alignment.CenterVertically,
@@ -224,4 +232,4 @@ private fun TimerBar(
   }
 }
 
-const val MainBottomSpace = 200
+val LocalMainBottomSpace = androidx.compose.runtime.staticCompositionLocalOf { 200.dp }
